@@ -2,6 +2,14 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.keras import backend as K
 
+
+def weighted_binary_crossentropy(target, output):
+    loss = -(98.0 * target * K.log(output) + 2.0 * (1.0 - target) * K.log(1.0 - output)) / 100.0
+    return loss
+
+def kl_loss(z_mean,z_log_sigma_square):
+    return - 0.5 * K.mean(1 + z_mean - K.square(z_mean) - K.exp(z_log_sigma_square))
+
 def tc_term(beta, z_sampled, z_mean, z_log_squared_scale):
     """
     From:

@@ -17,11 +17,11 @@ There is 6778 elements in the chair class, the full object is available under `/
 
 We also divide it into a train set and a test set, the `/dataset/03001627_train` folder consists of 5778 elements and the`/dataset/03001627_test` folder consists of 1000 elements.
 
- If you want to generate object 3d images at the same time, **it is recommended** to use this `/dataset/03001627_test_img`, which consists of 100 objects from the 1000 test objects, because we use CPU to generate 3d images, it takes about 10 minutes to test and generate images on 100 objects.
+If you want to generate object 3d images at the same time, **it is recommended** to use this `/dataset/03001627_test_img`, which consists of 100 objects from the 1000 test objects, because we use CPU to generate 3d images, it takes about 10 minutes to test and generate images on 100 objects.
 
 ### Training
 
-Set your configuration in the `run_training.py` includes hyper parameters, train dataset, **save path** (it's recommended to set it out of the repository)etc, there are the options you could choose in [arg_parser.py]()
+Set your configuration in the `run_training.py` includes hyper parameters, train dataset, **save path** (it's recommended to set it out of the repository)etc, there are the options you could choose in [arg_parser.py](https://github.com/Mingy2018/MMI-VAE/blob/main/utils/arg_parser.py)
 
 Start training:
 

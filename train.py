@@ -24,7 +24,6 @@ session=tf.Session(config=ConFig)
 
 def weighted_binary_crossentropy(target, output):
     loss = -(98.0 * target * K.log(output) + 2.0 * (1.0 - target) * K.log(1.0 - output)) / 100.0
-    print('the shape of return value in BCE func', loss.shape)
     return loss
 
 def kl_loss(z_mean,z_log_sigma_square):
@@ -92,7 +91,7 @@ def main(args):
 
     plot_model(vae, to_file = 'vae.pdf', show_shapes = True)
 
-    data_train = binvox_IO.voxelpath2matrix(dataset)
+    data_train, hash = binvox_IO.voxelpath2matrix(dataset)
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=train_data_path)
 
