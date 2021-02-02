@@ -39,6 +39,7 @@ def main(args):
     # Hyperparameters
     epoch_num = args.num_epochs
     batch_size = args.batch_size
+    z_dim = args.latent_vector_size
 
     model_name = args.model
     dataset = args.data_dir
@@ -46,7 +47,8 @@ def main(args):
     train_data_path = save_train.create_log_dir(save_path)
 
 
-    model = get_model(z_dim= args.latent_vector_size)
+    model = get_model(z_dim)
+    print("Using the latent space size is", args)
     inputs = model['inputs']
     outputs = model['outputs']
     mu = model['mu']
@@ -61,31 +63,28 @@ def main(args):
 
     # kl-divergence
     kl_loss_term = kl_loss(mu, sigma)
-    print('THe shape of kl_loss_term', kl_loss_term.shape)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(K.mean(weighted_binary_crossentropy(inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))), 'float32')
-    print('The shape of BCE loss is', BCE_loss.shape)
 
     z_edit = tf.expand_dims(z,0)
     tc_loss_term , tc = custom_loss.tc_term(args.beta, z_edit, mu, sigma)
-    print('the shape of tc_loss_term', tc_loss_term.shape)
     #tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
 
     # Total loss
     if model_name == 'vae-0':
-        loss = BCE_loss
-    if model_name == 'vae':
+        total_loss = BCE_loss
+    elif model_name == 'vae':
         print('Using VAE model')
-        loss = BCE_loss + kl_loss_term
+        total_loss = BCE_loss + kl_loss_term
     elif model_name == 'bvae':
         print('Using beta-VAE model')
-        loss = BCE_loss + args.beta * kl_loss_term
+        total_loss = BCE_loss + args.beta * kl_loss_term
     elif model_name == 'btcvae':
         print('Using beta-tc-VAE model')
-        loss = BCE_loss + kl_loss_term + tc_loss_term
+        total_loss = BCE_loss + kl_loss_term + tc_loss_term
 
-    vae.add_loss(loss)
+    vae.add_loss(total_loss)
     sgd = SGD(lr = learning_rate_1, momentum = momentum, nesterov = True)
     vae.compile(optimizer = sgd, metrics = ['accuracy'])
 
@@ -100,9 +99,9 @@ def main(args):
         epochs = epoch_num,
         batch_size = batch_size,
         validation_data = (data_train, None),
-        callbacks=[tensorboard_callback])
+        callbacks=[LearningRateScheduler(learning_rate_scheduler),tensorboard_callback])
 
-    save_train.save_train_config(__file__, './run_training.sh','./VAE.py', './utils/arg_parser.py', save_path= train_data_path)
+    save_train.save_train_config(__file__, './run_training.sh','./VAE.py', './utils/arg_parser.py','./run_testing.sh',save_path= train_data_path)
     plot_model(encoder, to_file = os.path.join(train_data_path,'vae_encoder.pdf'), show_shapes = True)
     plot_model(decoder, to_file = os.path.join(train_data_path,'vae_decoder.pdf'), show_shapes = True)
     vae.save_weights(os.path.join(train_data_path,'weights.h5'))

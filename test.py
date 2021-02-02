@@ -22,13 +22,15 @@ def data_loader(fname):
 
 def main(args):
 
+    z_dim = args.latent_vector_size
+
     weights_path = args.weights_file
     test_result_path = args.save_dir + '/test/'
     save_the_img = args.generate_img
     save_the_ori = args.save_ori
     test_data_path = args.test_data_dir
 
-    model = get_model()
+    model = get_model(z_dim)
 
     inputs = model['inputs']
     outputs = model['outputs']

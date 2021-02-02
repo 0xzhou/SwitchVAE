@@ -76,9 +76,4 @@ def total_correlation(z, z_mean, z_log_squared_scale, prior):
         tf.math.reduce_sum(log_qz_prob, axis=2, keepdims=False),
         axis=1,
         keepdims=False)
-    print("the size of log_qz_product is", log_qz_product.shape )
-    print("the size of log_qz is", log_qz.shape)
-    results=log_qz - log_qz_product
-    print("the size of return result is", results.shape)
-    print("the value of return result is", results)
     return K.mean(log_qz - log_qz_product)

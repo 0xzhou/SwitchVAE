@@ -101,5 +101,8 @@ def parse_test_arguments(argv):
     parser.add_argument('--generate_img', type=bool,
                         help='Generate images from .binvox files',
                         default=True)
+    parser.add_argument('--latent_vector_size', type=int,
+                        help='The size of the embedding layers.',
+                        default=200)
 
     return parser.parse_args(argv)

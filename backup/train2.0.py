@@ -8,8 +8,6 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras import backend as K
 
-from VAE import *
-#from beta_VAE import *
 from utils import npytar, binvox_IO, arg_parser, save_train, custom_loss
 import glob, sys, os, shutil
 from model import *
@@ -24,7 +22,6 @@ momentum = 0.9
 gpus= tf.config.list_physical_devices('GPU') # tf2.1版本该函数不再是experimental
 print(gpus) # 前面限定了只使用GPU1(索引是从0开始的,本机有2张RTX2080显卡)
 tf.config.experimental.set_memory_growth(gpus[0], True) # 其实gpus本身就只有一个元素
-
 
 
 def learning_rate_scheduler(epoch, lr):
@@ -46,9 +43,9 @@ def main(args):
     latent_dimension = args.latent_vector_size
 
     # Select model
-    # if model_name == 'vae-0':
-    #     model = AE()
-    if model_name == 'vae':
+    if model_name == 'vae-0':
+        model = VAE(beta= 0, tc=False, latent_dims=latent_dimension)
+    elif model_name == 'vae':
         print('------------Using VAE model--------------')
         model = VAE(beta= 1, tc=False, latent_dims=latent_dimension)
     elif model_name == 'bvae':
@@ -60,8 +57,8 @@ def main(args):
     else:
         raise NotImplementedError
 
-    sgd = SGD(lr=learning_rate_1, momentum=momentum, nesterov=True)
-    model.compile(optimizer=sgd, metrics=['accuracy'])
+    #sgd = SGD(lr=learning_rate_1, momentum=momentum, nesterov=True)
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate_2), metrics=['accuracy'])
 
     # inputs = model['inputs']
     # outputs = model['outputs']
