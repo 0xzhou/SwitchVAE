@@ -30,8 +30,8 @@ def sampling(args):
 
     return mu + K.exp(0.5 * sigma) * epsilon
 
-def get_voxel_encoder(z_dim = 200):
-    enc_in = Input(shape=voxel_input_shape)
+def get_voxel_encoder(z_dim = 200, vol_input=None):
+    #enc_in = Input(shape=voxel_input_shape)
 
     enc_conv1 = BatchNormalization()(
         Conv3D(
@@ -41,7 +41,7 @@ def get_voxel_encoder(z_dim = 200):
             padding='valid',
             kernel_initializer='glorot_normal',
             activation='elu',
-            data_format='channels_first')(enc_in))
+            data_format='channels_first')(vol_input))
     enc_conv2 = BatchNormalization()(
         Conv3D(
             filters=16,
@@ -89,11 +89,12 @@ def get_voxel_encoder(z_dim = 200):
         sampling,
         output_shape=(z_dim,))([mu, sigma])
 
-    encoder = Model(enc_in, [mu, sigma, z])
+    #encoder = Model(enc_in, [mu, sigma, z])
+    encoder = Model(vol_input, [mu, sigma, z])
     return encoder
 
-def get_voxel_decoder(z_dim = 200):
-    dec_in = Input(shape=(z_dim,))
+def get_voxel_decoder(dec_in=None):
+    #dec_in = Input(shape=(z_dim,))
 
     dec_fc1 = BatchNormalization()(
         Dense(
@@ -151,7 +152,7 @@ def get_voxel_decoder(z_dim = 200):
             data_format='channels_first')(dec_conv4))
 
     decoder = Model(dec_in, dec_conv5)
-    return decoder
+    return decoder, dec_conv5
 
 def split_inputs(inputs, num_views=6):
     """
@@ -209,17 +210,19 @@ def cnn_img(input_shape):
     return cnn
 
 
-def get_img_encoder(input_shape=None, z_dim = 200, img_shape=None):
+def get_img_encoder(input_shape=None, z_dim = 200, img_shape=None, img_inputs=None):
     """
     input: Batch x Viewns x Width x Height x Channels (tensor)
     """
     # input placeholder with shape (None, 12, 227, 227, 3)
     # 'None'=batch size; 12=NUM_VIEWS; (227, 227, 3)=IMAGE_SHAPE
-    inputs = Input(shape=input_shape, name='input')
+
+    #inputs = Input(shape=input_shape, name='input')
 
     # split inputs into views(a list), every element of
     # view has shape (None, 227, 227, 3).
-    views = Lambda(split_inputs, name='split')(inputs)
+    #views = Lambda(split_inputs, name='split')(inputs)
+    views = Lambda(split_inputs, name='split')(img_inputs)
 
     cnn_model = cnn_img(img_shape)
 
@@ -258,7 +261,7 @@ def get_img_encoder(input_shape=None, z_dim = 200, img_shape=None):
         sampling,
         output_shape = (z_dim, ))([mu, sigma])
 
-    mvcnn_model = keras.Model(inputs=inputs, outputs=[mu, sigma, z], name='MVCNN')
+    mvcnn_model = keras.Model(inputs=img_inputs, outputs=[mu, sigma, z], name='MVCNN')
     return mvcnn_model
 
 

@@ -27,8 +27,8 @@ def get_MMI(z_dim = 200):
     img_in = Input(shape= img_input_shape)
     vol_in = Input(shape= vol_input_shape)
 
-    img_encoder = get_img_encoder(img_input_shape, z_dim, img_shape)
-    vol_encoder = get_voxel_encoder(z_dim)
+    img_encoder = get_img_encoder(img_input_shape, z_dim, img_shape, img_in)
+    vol_encoder = get_voxel_encoder(z_dim, vol_in)
 
     z_img = img_encoder(img_in)[2]
     z_vol = vol_encoder(vol_in)[2]
@@ -40,13 +40,21 @@ def get_MMI(z_dim = 200):
     weighted_z_vol = weight_op_vol(z_vol)
     z = Add()([weighted_z_img, weighted_z_vol])
 
-    model1 = Model([img_in, vol_in], z)
-    plot_model(model1, to_file='./MMI-encoder.pdf', show_shapes=True, expand_nested = True)
 
-    decoder = get_voxel_decoder(z_dim)
-    output = decoder(z)
+    encoder = Model([img_in, vol_in], z)
+    plot_model(encoder, to_file='./MMI-encoder-test.pdf', show_shapes=True, expand_nested = True)
 
-    mmi = Model(inputs=[img_encoder.input, vol_encoder.input], outputs= output)
+    dec_in = Input(shape=(200,))
+    decoder, dec_output = get_voxel_decoder(dec_in)
+    #out = decoder(z)
+    decoder2 = Model(dec_in, dec_output)
+
+    plot_model(decoder2, to_file='./MMI-decoder-test.pdf', show_shapes=True, expand_nested= True)
+
+    output = decoder2(encoder([img_in,vol_in]))
+
+    mmi = Model(inputs=[img_in, vol_in], outputs= output)
+    #plot_model(mmi, to_file='./MMI.pdf', show_shapes=True, expand_nested=True)
 
     return { 'vol_inputs': vol_in,
             'img_inputs': img_in,
@@ -56,5 +64,4 @@ def get_MMI(z_dim = 200):
 
 if __name__ == '__main__':
     mmi = get_MMI(200)
-    img_encoder_1 = get_img_encoder(img_input_shape, 200, img_shape)
-    plot_model(mmi, to_file='./2.pdf', show_shapes=True)
+    plot_model(mmi, to_file='./MMI.pdf', show_shapes=True, expand_nested= True)
