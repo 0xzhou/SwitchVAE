@@ -41,14 +41,17 @@ def main(args):
     batch_size = args.batch_size
     z_dim = args.latent_vector_size
 
-    model_name = args.model
-    dataset = args.data_dir
+    # Path configuration
+    loss_type = args.loss
+    voxel_dataset_path = args.binvox_dir
     save_path = args.save_dir
     train_data_path = save_train.create_log_dir(save_path)
 
-
+    # Model selection
     model = get_model(z_dim)
     print("Using the latent space size is", args)
+
+    # Get model structures
     inputs = model['inputs']
     outputs = model['outputs']
     mu = model['mu']
@@ -67,20 +70,21 @@ def main(args):
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(K.mean(weighted_binary_crossentropy(inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))), 'float32')
 
+    # Loss in betatc VAE
     z_edit = tf.expand_dims(z,0)
     tc_loss_term , tc = custom_loss.tc_term(args.beta, z_edit, mu, sigma)
     #tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
 
     # Total loss
-    if model_name == 'vae-0':
+    if loss_type == 'bce':
         total_loss = BCE_loss
-    elif model_name == 'vae':
+    elif loss_type == 'vae':
         print('Using VAE model')
         total_loss = BCE_loss + kl_loss_term
-    elif model_name == 'bvae':
+    elif loss_type == 'bvae':
         print('Using beta-VAE model')
         total_loss = BCE_loss + args.beta * kl_loss_term
-    elif model_name == 'btcvae':
+    elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
         total_loss = BCE_loss + kl_loss_term + tc_loss_term
 
@@ -90,7 +94,7 @@ def main(args):
 
     plot_model(vae, to_file = 'vae.pdf', show_shapes = True)
 
-    data_train, hash = binvox_IO.voxelpath2matrix(dataset)
+    data_train, hash = binvox_IO.voxelpath2matrix(voxel_dataset_path)
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=train_data_path)
 
@@ -101,7 +105,7 @@ def main(args):
         validation_data = (data_train, None),
         callbacks=[LearningRateScheduler(learning_rate_scheduler),tensorboard_callback])
 
-    save_train.save_train_config(__file__, './run_training.sh','./VAE.py', './utils/arg_parser.py','./run_testing.sh',save_path= train_data_path)
+    save_train.save_train_config(__file__, './run_training.sh', './VAE.py', './utils/arg_parser.py','./run_testing.sh',save_path= train_data_path)
     plot_model(encoder, to_file = os.path.join(train_data_path,'vae_encoder.pdf'), show_shapes = True)
     plot_model(decoder, to_file = os.path.join(train_data_path,'vae_decoder.pdf'), show_shapes = True)
     vae.save_weights(os.path.join(train_data_path,'weights.h5'))

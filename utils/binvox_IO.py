@@ -29,6 +29,7 @@ def voxelpath2matrix(dataset_path, padding = False):
         voxels[i] = model.astype(np.float32)
     return 3.0 * voxels -1.0, voxels_hash
 
+
 def write_binvox_file(pred, filename):
     with open(filename, 'w') as f:
         voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xzy')

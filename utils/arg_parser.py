@@ -3,12 +3,20 @@ import argparse
 def parse_train_arguments(argv):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--model', type=str, choices=['deepmind_enc','vae','bvae', 'vae-0', 'btcvae'],
-                        help='The encoder architecture to use', default='deepmind_enc')
+    parser.add_argument('--loss', type=str, choices=['vae', 'bvae', 'bce', 'btcvae'],
+                        help='The loss function to use', default='bce')
 
-    parser.add_argument('--data_dir', type=str,
-                        help='Data directory.',
+    parser.add_argument('--binvox_dir', type=str,
+                        help='Volumetric data directory.',
                         default=None)
+
+    parser.add_argument('--image_dir', type=str,
+                        help='Image data directory.',
+                        default=None)
+
+    parser.add_argument('--dataset_scale', type=tuple,
+                        help='training_dataset_scale : testing_dataset_scale',
+                        default=(0.8, 0.2))
 
     parser.add_argument('--graph_dir', type=str,
                         help='The directory to write the training graphs.',
