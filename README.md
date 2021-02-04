@@ -53,11 +53,7 @@ The training of MMI-VAE model is still under debugging. Set training configurati
 
 For volumetric dataset, use the dataset in this repository:  `/dataset/03001627_train` .
 
-
-
-For Image dataset: get the local path of **chair class(03001627)** after downloading and set it in `run_training.sh` like following: (The number of objects in two folders are different, don't worry, training script will match the according to their hash_id).
-
-
+For Image dataset: get the local path of **chair class(03001627)** after downloading and set it in `run_training.sh` like following: (The number of objects in two folders are different, don't worry, training script will match them according to their hash_id).
 
 ```sh
 --binvox_dir ./dataset/03001627_train
