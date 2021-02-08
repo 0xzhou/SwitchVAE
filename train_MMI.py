@@ -8,22 +8,18 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras import backend as K
 
-from VAE import *
 from MMI import *
-#from beta_VAE import *
-from utils import npytar, binvox_IO, arg_parser, save_train, custom_loss, dataset_pre
-import glob, sys, os, shutil
+from utils import data_IO, arg_parser, save_train, custom_loss, dataset_pre
+import sys, os
 
 learning_rate_1 = 0.0001
 learning_rate_2 = 0.005
 momentum = 0.9
 image_shape=(137,137,3)
 
-
 ConFig=tf.ConfigProto()
 ConFig.gpu_options.allow_growth=True
 session=tf.Session(config=ConFig)
-
 
 def weighted_binary_crossentropy(target, output):
     loss = -(98.0 * target * K.log(output) + 2.0 * (1.0 - target) * K.log(1.0 - output)) / 100.0
@@ -51,7 +47,7 @@ def main(args):
     train_data_path = save_train.create_log_dir(save_path)
 
     # Model selection
-    model = get_MMI(200, 'switch')
+    model = get_MMI(z_dim, 'switch')
 
     # Get model structures
     vol_inputs = model['vol_inputs']
@@ -100,12 +96,12 @@ def main(args):
     plot_model(decoder, to_file = os.path.join(train_data_path,'MMI-decoder.pdf'), show_shapes = True)
 
     # Load train data
-    voxel_data_train, hash = binvox_IO.voxelpath2matrix(voxel_dataset_path) # Number of element * 1 * 32 * 32 * 32
+    voxel_data_train, hash = data_IO.voxelpath2matrix(voxel_dataset_path) # Number of element * 1 * 32 * 32 * 32, hash_ID
     image_path_list = [os.path.join(image_dataset_path,id) for id in hash] # Get the path list which corresponds with the objects in voxel_data_train
 
     def generate_batch_data(voxel_input =None, image_path_list=None, batch_size =None):
         while 1:
-            for start_idx in range(len(voxel_input)- batch_size):
+            for start_idx in range(len(voxel_input) - batch_size):
                 excerpt = slice(start_idx, start_idx + batch_size)
 
                 image_path_onebatch = image_path_list[excerpt]
@@ -115,16 +111,26 @@ def main(args):
 
                 yield [batch_images, voxel_input[excerpt]], vol_inputs[excerpt]
 
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=train_data_path)
+    train_callbacks= [
+        tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
+        tf.keras.callbacks.CSVLogger(filename=train_data_path+'/training_log'),
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath=os.path.join(train_data_path,'weights_{epoch:03d}-{loss:.4f}.h5'),
+            save_weights_only=True,
+            period=50
+        )
+    ]
 
     MMI.fit_generator(
         generate_batch_data(voxel_data_train, image_path_list, batch_size),
         steps_per_epoch= len(voxel_data_train) // batch_size,
+        #steps_per_epoch= 200,
         epochs = epoch_num,
-        callbacks=[LearningRateScheduler(learning_rate_scheduler),tensorboard_callback])
+        callbacks=train_callbacks
+    )
 
     save_train.save_train_config(__file__, './run_training.sh', './VAE.py', './utils/arg_parser.py','./run_testing.sh',save_path= train_data_path)
-    MMI.save_weights(os.path.join(train_data_path,'weights.h5'))
+    #MMI.save_weights(os.path.join(train_data_path,'weights.h5'))
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))

@@ -210,7 +210,7 @@ def cnn_img(input_shape):
     return cnn
 
 
-def get_img_encoder(input_shape=None, z_dim = 200, img_shape=None):
+def get_img_encoder(input_shape=None, z_dim = 200, img_shape=None, num_views=6):
     """
     input: Batch x Viewns x Width x Height x Channels (tensor)
     """
@@ -221,7 +221,7 @@ def get_img_encoder(input_shape=None, z_dim = 200, img_shape=None):
 
     # split inputs into views(a list), every element of
     # view has shape (None, 227, 227, 3).
-    views = Lambda(split_inputs, name='split')(inputs)
+    views = Lambda(split_inputs, name='split')(inputs, num_views)
     #views = Lambda(split_inputs, name='split')(img_inputs)
 
     cnn_model = cnn_img(img_shape)

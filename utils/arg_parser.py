@@ -94,8 +94,19 @@ def parse_test_arguments(argv):
                         help='the path of weights in .h5 file.',
                         default=None)
 
-    parser.add_argument('--test_data_dir', type=str,
+    parser.add_argument('--input_form', type=str, choices=['voxel', 'image'],
+                        help='The input form of test model', default=None)
+
+    parser.add_argument('--voxel_data_dir', type=str,
                         help='the path of test data in .binvox.',
+                        default=None)
+
+    parser.add_argument('--image_data_dir', type=str,
+                        help='the path of test image data.',
+                        default=None)
+
+    parser.add_argument('--model_dir', type=str,
+                        help='the path trained model in .h5 form',
                         default=None)
 
     parser.add_argument('--save_dir', type=str,
@@ -109,6 +120,7 @@ def parse_test_arguments(argv):
     parser.add_argument('--generate_img', type=bool,
                         help='Generate images from .binvox files',
                         default=True)
+
     parser.add_argument('--latent_vector_size', type=int,
                         help='The size of the embedding layers.',
                         default=200)

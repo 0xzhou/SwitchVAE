@@ -11,10 +11,10 @@ def read_voxel_data(model_path):
         model = binvox_rw.read_as_3d_array(f)
         return model.data
 
-def voxelpath2matrix(dataset_path, padding = False):
+def voxelpath2matrix(voxel_dataset_path, padding = False):
 
-    voxels_path = glob.glob(dataset_path+'/*')
-    voxels_name = os.listdir(dataset_path)
+    voxels_path = glob.glob(voxel_dataset_path + '/*')
+    voxels_name = os.listdir(voxel_dataset_path)
     voxels_hash = []
     for ele in voxels_name:
         h1 = ele.split('.')[0]
@@ -35,3 +35,13 @@ def write_binvox_file(pred, filename):
         voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xzy')
         binvox_rw.write(voxel, f)
         f.close()
+
+def imagepath2matrix(image_dataset_path, single_image_shape=(137, 137, 3) ):
+
+    image_files = glob.glob(image_dataset_path + "/*/*" + "png")
+    object_hash = os.listdir(image_dataset_path)
+
+    images = np.zeros((24,) + single_image_shape, dtype=np.float32)
+    for i, image in enumerate(image_files):
+        images[i]= nd.imread(image,mode='RGB')
+    return images

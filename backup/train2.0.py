@@ -8,7 +8,7 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras import backend as K
 
-from utils import npytar, binvox_IO, arg_parser, save_train, custom_loss
+from utils import npytar, data_IO, arg_parser, save_train, custom_loss
 import glob, sys, os, shutil
 from model import *
 
@@ -71,7 +71,7 @@ def main(args):
     # vae = model['vae']
 
 
-    data_train, hash= binvox_IO.voxelpath2matrix(dataset)
+    data_train, hash= data_IO.voxelpath2matrix(dataset)
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=train_data_path)
 
     model.fit(

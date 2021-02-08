@@ -19,7 +19,6 @@ img_weight = 0.5
 xavier = keras.initializers.glorot_normal()
 l2_reg = keras.regularizers.l2(0.004)
 
-
 def switch(args):
     z_img, z_vol = args
     switch_possibility = random.random()
@@ -51,7 +50,6 @@ def get_MMI(z_dim = 200, train_mode = None):
 
         weighted_z_img = weight_op_img(z_img)
         weighted_z_vol = weight_op_vol(z_vol)
-
         z = Add(name='Weighted_Add_Layer')([weighted_z_img, weighted_z_vol])
 
     # Method3: Use a full connect layer to generated the latent vectors
@@ -59,18 +57,11 @@ def get_MMI(z_dim = 200, train_mode = None):
         z = concatenate([z_img, z_vol])
         z = Dense(units=z_dim, activation= 'tanh', name='FCC_Layer')(z)
 
-
     MMI_encoder = Model([img_input, vol_input], z)
-    #plot_model(MMI_encoder, to_file='./MMI_encoder.pdf', show_shapes=True, expand_nested = True)
-
     MMI_decoder = get_voxel_decoder(z_dim)
     decoded_vol = MMI_decoder(z)
 
-    #plot_model(MMI_encoder, to_file='./MMI-decoder.pdf', show_shapes=True, expand_nested=True)
-
     MMI = Model(MMI_encoder.inputs, decoded_vol)
-    #plot_model(MMI, to_file='./MMI.pdf', show_shapes=True, expand_nested=True)
-    #plot_model(MMI, to_file='./nested-MMI.pdf', show_shapes=True)
 
     return { 'vol_inputs': vol_input,
              'img_inputs': img_input,
@@ -81,13 +72,12 @@ def get_MMI(z_dim = 200, train_mode = None):
              'z_img': z_img,
              'z_vol': z_vol,
              'z': z,
+             'image_encoder': img_encoder,
+             'voxel_encoder': vol_encoder,
              'MMI_encoder': MMI_encoder,
              'MMI_decoder': MMI_decoder,
              'MMI': MMI,
              'outputs': decoded_vol
     }
-
-if __name__ == '__main__':
-    get_MMI(200, 'switch')
 
 

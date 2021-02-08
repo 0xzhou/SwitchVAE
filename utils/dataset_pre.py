@@ -1,36 +1,30 @@
 
 import numpy as np
-import os, shutil
-import glob
-from utils import npytar, binvox_IO
+import os, shutil, random
+#from utils import npytar, data_IO
 import tensorflow as tf
 import scipy.ndimage as nd
 
-# def preprocess_shapenet_rendering(rendering_path, output_path):
-#     if not os.path.exists(output_path):
-#         os.makedirs(output_path)
-#
-#     id_hash_set = os.listdir(rendering_path)
-#     for id in id_hash_set:
-#         img_path = os.path.join(rendering_path, id, 'rendering')
-#         imgs = os.listdir(img_path)
-#         for img in imgs:
-#             if img.endswith('.png'):
-#                 new_img_name = id + img
-#                 shutil.copy2(img, os.path.join(output_path, new_img_name))
-#         break
-#
-#
-#     print(id_hash_set[:10])
+def prepocess_dataset(voxel_dataset_path, image_dataset_path, split_scale=(0.8, 0.2)):
 
-def imagepath2matrix(id_path, image_shape=(137,137,3)):
-    image_files = glob.glob(id_path + "/*/*" + "png")
-    channels = image_shape[2]
-    images = np.zeros((24,)+image_shape, dtype=np.float32)
-    for i, image in enumerate(image_files):
-        images[i]= nd.imread(image,mode='RGB')
-    return images
+    object_number = len(os.listdir(voxel_dataset_path))
+    train_dataset_size = int(object_number * split_scale[0])
+    random.shuffle(voxel_dataset_path)
 
+    voxel_train_dataset = voxel_dataset_path[:train_dataset_size]
+
+def create_image_test_sub(voxel_test_sub_path, image_dataset, save_path):
+
+    voxels_name = os.listdir(voxel_test_sub_path)
+    voxels_hash = []
+    for ele in voxels_name:
+        h1 = ele.split('.')[0]
+        voxels_hash.append(h1)
+
+    for hash in voxels_hash:
+        image_file = os.path.join(image_dataset, hash)
+        save_to = os.path.join(save_path, hash)
+        shutil.copytree(image_file, save_to)
 
 def map_batch(img_batch, model_batch):
     data = []
@@ -47,9 +41,8 @@ def decode_img(path_tensor, img_size, channels = 3):
     img = tf.image.random_crop(img, img_size)
     return img
 
+if __name__ == '__main__':
 
-
-# if __name__ == '__main__':
 #     voxel_dataset_path='/home/zmy/GitHub/MMI-VAE/dataset/03001627_train'
 #     voxel_data_train, hash = binvox_IO.voxelpath2matrix(voxel_dataset_path)  # Number of element * 1 * 32 * 32 * 32
 #     rendering_dic = '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627'
@@ -58,5 +51,8 @@ def decode_img(path_tensor, img_size, channels = 3):
 #     #imagepath2matrix(rendering_dic)
 #     #image_data_path = glob.glob(rendering_dic+"/*")
 #     imagepath2matrix(id_path)
+    create_image_test_sub('/home/zmy/GitHub/MMI-VAE/dataset/03001627_test_sub',
+                          '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627',
+                          '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627_test')
 
 

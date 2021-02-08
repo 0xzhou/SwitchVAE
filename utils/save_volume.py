@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 from skimage import measure
-from utils import binvox_IO
+from utils import data_IO
 
 def save_output(output_arr, output_size, output_dir, file_idx):
     plot_out_arr = np.array([])
@@ -55,7 +55,7 @@ def save_binvox_output(output_arr, output_hash, output_dir, outname, save_bin = 
         s1 = output_dir + '/' + output_hash + outname + '.binvox'
         print('The s1 is', s1)
         s1 = bytes(s1, 'utf-8')
-        binvox_IO.write_binvox_file(output_arr, s1)
+        data_IO.write_binvox_file(output_arr, s1)
 
     # save the model image
     if save_img:

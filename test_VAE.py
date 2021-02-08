@@ -6,19 +6,11 @@ import shutil
 import sys
 
 from VAE import *
-from utils import npytar, save_volume, binvox_IO, arg_parser
+from utils import save_volume, data_IO, arg_parser
 
 ConFig=tf.ConfigProto()
 ConFig.gpu_options.allow_growth=True
 session=tf.Session(config=ConFig)
-
-def data_loader(fname):
-    reader = npytar.NpyTarReader(fname)
-    xc = np.zeros((reader.length(), ) + input_shape, dtype = np.float32)
-    reader.reopen()
-    for ix, (x, name) in enumerate(reader):
-        xc[ix] = x.astype(np.float32)
-    return 3.0 * xc - 1.0
 
 def main(args):
 
@@ -44,7 +36,7 @@ def main(args):
 
     # Set the weight files and test dataset path
     vae.load_weights(weights_path)
-    data_test, hash = binvox_IO.voxelpath2matrix(test_data_path)
+    data_test, hash = data_IO.voxelpath2matrix(test_data_path)
 
     reconstructions = vae.predict(data_test)
     reconstructions[reconstructions > 0] = 1
@@ -53,12 +45,12 @@ def main(args):
     if not os.path.exists(test_result_path):
         os.makedirs(test_result_path)
 
-    # save the original test dataset file
+    # copy the original test dataset file
     if save_the_ori:
         for i in range(reconstructions.shape[0]):
-            shutil.copy2('./dataset/03001627_test_small/'+hash[i]+'.binvox', test_result_path)
+            shutil.copy2('./dataset/03001627_test_sub/'+hash[i]+'.binvox', test_result_path)
             if save_the_img:
-                shutil.copy2('./dataset/03001627_test_small_pics/' + hash[i] + '.png', test_result_path)
+                shutil.copy2('./dataset/03001627_test_sub_images/' + hash[i] + '.png', test_result_path)
 
     # save the generated objects files
     for i in range(reconstructions.shape[0]):
