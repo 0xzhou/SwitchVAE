@@ -37,7 +37,7 @@ Set your configuration in the `run_training.py` includes hyper parameters, train
 
 - Volumetric Data VAE
 
-Set training configurations in `run_training.sh` file and use `train.py` to train.
+Set training configurations in `run_training.sh` file and use `train_VAE.py` to train.
 
 Start training:
 
@@ -47,7 +47,7 @@ sh run_training.sh
 
 - MMI-VAE (Multi-Modal Input VAE)
 
-The training of MMI-VAE model is still under debugging. Set training configurations in `run_training.sh` file and use `train2.0.py` to train.
+The training of MMI-VAE model is still under debugging. Set training configurations in `run_training.sh` file and use `train_MMI.py` to train.
 
 **Attention:**
 
@@ -82,7 +82,13 @@ sh run_testing.sh
 
 - Test in MMI-VAE
 
-  wait...
+We use `test_MMI.py` to test MMI model, the test model take only one input, either voxel or image, you could define the `input_from` in `run_testing.sh`. Once you select the `input_form`, also define the corresponding test dataset in `run_testing.sh`.
+
+Start testing
+
+```sh
+sh run_testing.sh
+```
 
 
 

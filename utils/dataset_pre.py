@@ -1,7 +1,7 @@
 
 import numpy as np
 import os, shutil, random
-#from utils import npytar, data_IO
+from utils import data_IO
 import tensorflow as tf
 import scipy.ndimage as nd
 
@@ -43,14 +43,6 @@ def decode_img(path_tensor, img_size, channels = 3):
 
 if __name__ == '__main__':
 
-#     voxel_dataset_path='/home/zmy/GitHub/MMI-VAE/dataset/03001627_train'
-#     voxel_data_train, hash = binvox_IO.voxelpath2matrix(voxel_dataset_path)  # Number of element * 1 * 32 * 32 * 32
-#     rendering_dic = '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627'
-#     id_path = '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627/1a6f615e8b1b5ae4dbbc9440457e303e'
-#     #preprocess_shapenet_rendering(rendering_dic, './03001627_img')
-#     #imagepath2matrix(rendering_dic)
-#     #image_data_path = glob.glob(rendering_dic+"/*")
-#     imagepath2matrix(id_path)
     create_image_test_sub('/home/zmy/GitHub/MMI-VAE/dataset/03001627_test_sub',
                           '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627',
                           '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627_test')

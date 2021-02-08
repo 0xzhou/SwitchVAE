@@ -1,16 +1,11 @@
 import numpy as np
-import tensorflow as tf
+
 import tensorflow.keras as keras
 
 from tensorflow.keras.layers import Input, BatchNormalization, Conv3D, Conv2D, MaxPool2D, Dense, Dropout, Flatten, Lambda, Reshape, Conv3DTranspose
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
-import tensorflow_probability as tfp
-
-from tensorflow.keras.activations import sigmoid
-from utils import custom_loss
-import os
 
 voxel_input_shape = (1, 32, 32, 32)
 views = 6
@@ -263,61 +258,3 @@ def get_img_encoder(input_shape=None, z_dim = 200, img_shape=None, num_views=6):
 
     mvcnn_model = keras.Model(inputs=inputs, outputs=[mu, sigma, z], name='Image_MVCNN_VAE')
     return mvcnn_model
-
-
-
-# class VAE(keras.Model):
-#     def __init__(self, beta=1, tc=False, latent_dims=200, **kwargs):
-#         super(VAE, self).__init__(**kwargs)
-#         self.latent_dims = latent_dims
-#         self.encoder = get_voxel_encoder(self.latent_dims)
-#         self.decoder = get_voxel_decoder(self.latent_dims)
-#         self.beta = beta
-#         self.tc = tc
-#
-#
-#     def call(self, input):
-#         return None
-#
-#     def train_step(self, data):
-#         if isinstance(data, tuple):
-#             data = data[0]
-#
-#         with tf.GradientTape() as tape:
-#             mu, log_sigma_square, z = self.encoder(data)[0], self.encoder(data)[1], self.encoder(data)[2]
-#             px_z = self.decoder(z)
-#
-#             BCE_loss = K.cast(K.mean(custom_loss.weighted_binary_crossentropy(data, K.clip(sigmoid(px_z), 1e-7, 1.0 - 1e-7))), 'float32')
-#             kl_loss_term = custom_loss.kl_loss(mu, log_sigma_square)
-#             tc = total_correlation(z, mu, log_sigma_square)
-#             tc_loss_term = (self.beta - 1.) * tc
-#             #tc_loss_term, tc = custom_loss.tc_term(self.beta, z, mu, log_sigma_square)
-#
-#             if self.tc:
-#                 elbo = BCE_loss + kl_loss_term + tc_loss_term
-#             else:
-#                 elbo = BCE_loss + self.beta * kl_loss_term
-#
-#             total_loss = elbo
-#             grads = tape.gradient(total_loss, self.trainable_weights)
-#             self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
-#
-#             return {
-#                 'loss': total_loss,
-#                 'bce_loss': BCE_loss,
-#                 'kl': kl_loss_term,
-#                 'tc': tc
-#             }
-#
-#     def save(self, save_path):
-#         self.encoder.save(os.path.join(save_path, 'encoder'))
-#         self.decoder.save(os.path.join(save_path, 'decoder'))
-
-
-# def total_correlation(zs, mu, sigma):
-#
-#     log_qz_prob = tfp.distributions.Normal(tf.expand_dims(mu, 0), tf.expand_dims(sigma, 0)).log_prob(tf.expand_dims(zs, 1))
-#     log_qz_prod = tf.reduce_sum(tf.reduce_logsumexp(log_qz_prob, axis=1, keepdims=False), axis=1, keepdims=False)
-#     log_qz = tf.reduce_logsumexp(tf.reduce_sum(log_qz_prob, axis=2, keepdims=False), axis=1, keepdims=False)
-#
-#     return log_qz - log_qz_prod

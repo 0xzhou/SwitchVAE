@@ -1,5 +1,4 @@
 
-
 import numpy as np
 import scipy.ndimage as nd
 from utils import binvox_rw
@@ -28,7 +27,6 @@ def voxelpath2matrix(voxel_dataset_path, padding = False):
             model = np.pad(model, ((4,4),(4,4),(4,4)), 'constant')
         voxels[i] = model.astype(np.float32)
     return 3.0 * voxels -1.0, voxels_hash
-
 
 def write_binvox_file(pred, filename):
     with open(filename, 'w') as f:
