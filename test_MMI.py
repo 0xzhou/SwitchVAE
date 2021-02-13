@@ -1,13 +1,11 @@
 import os
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
-from tensorflow.keras.models import Model
-import shutil, random, sys
+import shutil, sys
 
 from MMI import *
-from utils import save_volume, data_IO, arg_parser, dataset_pre
-from model import get_img_encoder, get_voxel_encoder, get_voxel_decoder
+from utils import save_volume, data_IO, arg_parser
+from utils.model import get_img_encoder, get_voxel_encoder, get_voxel_decoder
 
 ConFig=tf.ConfigProto()
 ConFig.gpu_options.allow_growth=True
@@ -102,7 +100,7 @@ def main(args):
         for i in range(reconstructions.shape[0]):
             shutil.copy2('./dataset/03001627_test_sub/'+hash[i]+'.binvox', test_result_path)
             if save_the_img:
-                shutil.copy2('./dataset/03001627_test_sub_images/' + hash[i] + '.png', test_result_path)
+                shutil.copy2('./dataset/03001627_test_sub_visualization/' + hash[i] + '.png', test_result_path)
 
     # save the generated objects files
     for i in range(reconstructions.shape[0]):

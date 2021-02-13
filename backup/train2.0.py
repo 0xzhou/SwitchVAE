@@ -1,16 +1,8 @@
-import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
 
-from tensorflow.keras.utils import plot_model
-from tensorflow.keras.activations import sigmoid
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.callbacks import LearningRateScheduler
-from tensorflow.keras import backend as K
-
-from utils import npytar, data_IO, arg_parser, save_train, custom_loss
-import glob, sys, os, shutil
-from model import *
+from utils import data_IO, arg_parser, save_train
+import sys, os
+from utils.model import *
 
 learning_rate_1 = 0.0001
 learning_rate_2 = 0.005

@@ -1,5 +1,5 @@
 
-python train_MMI.py --loss bce  \
+python train_MMI.py --loss vae  \
                 --binvox_dir ./dataset/03001627_train \
                 --image_dir /home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627 \
                 --save_dir ./training \

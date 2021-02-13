@@ -19,9 +19,9 @@ There are 6778 elements in the chair class, the full object is available under `
 
 We also divide it into a train set and a test set, the `/dataset/03001627_train` folder consists of 5778 elements and the`/dataset/03001627_test` folder consists of 1000 elements.
 
-In testing, if you want to generate images of the reconstructed objects at the same time, **it is recommended** to use this `/dataset/03001627_test_small`, which consists of 100 objects from the 1000 test objects, because we use CPU to generate images, it takes about 10 minutes to test and generate images on 100 objects.
+In testing, if you want to generate images of the reconstructed objects at the same time, **it is recommended** to use this `/dataset/03001627_test_sub`, which consists of 100 objects from the 1000 test objects, because we use CPU to generate images, it takes about 10 minutes to test and generate images on 100 objects.
 
-In `03001627_test_small_pics`, you could see the ground truth image of the 100 test objects.
+In `03001627_test_sub_pics`, you could see the ground truth image of the 100 test objects.
 
 - Image data
 

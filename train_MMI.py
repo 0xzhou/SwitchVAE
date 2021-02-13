@@ -9,13 +9,12 @@ from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras import backend as K
 
 from MMI import *
-from utils import data_IO, arg_parser, save_train, custom_loss, dataset_pre
-import sys, os
+from utils import data_IO, arg_parser, save_train, custom_loss, process_dataset
+import sys, os, glob
 
 learning_rate_1 = 0.0001
 learning_rate_2 = 0.005
 momentum = 0.9
-image_shape=(137,137,3)
 
 ConFig=tf.ConfigProto()
 ConFig.gpu_options.allow_growth=True
@@ -52,8 +51,8 @@ def main(args):
     # Get model structures
     vol_inputs = model['vol_inputs']
     outputs = model['outputs']
-    #mu = model['mu']
-    #sigma = model['sigma']
+    mu = model['mu']
+    sigma = model['sigma']
     z = model['z']
 
     encoder = model['MMI_encoder']
@@ -64,31 +63,32 @@ def main(args):
     loss_type = args.loss
 
     # kl-divergence
-    #kl_loss_term = kl_loss(mu, sigma)
+    kl_loss_term = kl_loss(mu, sigma)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(K.mean(weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))), 'float32')
 
     # Loss in betatc VAE
-    #z_edit = tf.expand_dims(z,0)
-    #tc_loss_term , tc = custom_loss.tc_term(args.beta, z_edit, mu, sigma)
+    z_edit = tf.expand_dims(z,0)
+    tc_loss_term , tc = custom_loss.tc_term(args.beta, z_edit, mu, sigma)
     #tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
 
     # Total loss
     if loss_type == 'bce':
         total_loss = BCE_loss
-    # elif model_name == 'vae':
-    #     print('Using VAE model')
-    #     total_loss = BCE_loss + kl_loss_term
-    # elif model_name == 'bvae':
-    #     print('Using beta-VAE model')
-    #     total_loss = BCE_loss + args.beta * kl_loss_term
-    # elif model_name == 'btcvae':
-    #     print('Using beta-tc-VAE model')
-    #     total_loss = BCE_loss + kl_loss_term + tc_loss_term
+    elif loss_type == 'vae':
+        print('Using VAE model')
+        total_loss = BCE_loss + kl_loss_term
+    elif loss_type == 'bvae':
+        print('Using beta-VAE model')
+        total_loss = BCE_loss + args.beta * kl_loss_term
+    elif loss_type == 'btcvae':
+        print('Using beta-tc-VAE model')
+        total_loss = BCE_loss + kl_loss_term + tc_loss_term
 
     MMI.add_loss(total_loss)
     sgd = SGD(lr = learning_rate_1, momentum = momentum, nesterov = True)
+
     MMI.compile(optimizer = sgd, metrics = ['accuracy'])
 
     plot_model(MMI, to_file = os.path.join(train_data_path,'MMI.pdf'), show_shapes = True)
@@ -105,9 +105,9 @@ def main(args):
                 excerpt = slice(start_idx, start_idx + batch_size)
 
                 image_path_onebatch = image_path_list[excerpt]
-                batch_images = np.zeros((batch_size,24) + image_shape, dtype=np.float32)
+                batch_images = np.zeros((batch_size,24) + g.IMAGE_SHAPE, dtype=np.float32)
                 for i, object in enumerate(image_path_onebatch):
-                    batch_images[i] = dataset_pre.imagepath2matrix(object)
+                    batch_images[i] = data_IO.imagepath2matrix(object)
 
                 yield [batch_images, voxel_input[excerpt]], vol_inputs[excerpt]
 
@@ -115,7 +115,7 @@ def main(args):
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path+'/training_log'),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(train_data_path,'weights_{epoch:03d}-{loss:.4f}.h5'),
+            filepath=os.path.join(train_data_path,'weights_{epoch:03d}_{loss:.4f}.h5'),
             save_weights_only=True,
             period=50
         )
@@ -129,7 +129,9 @@ def main(args):
         callbacks=train_callbacks
     )
 
-    save_train.save_train_config(__file__, './run_training.sh', './VAE.py', './utils/arg_parser.py','./run_testing.sh',save_path= train_data_path)
+    save_train.save_train_config(__file__, './run_training.sh',
+                                 './MMI.py', './utils/arg_parser.py',
+                                 './run_testing.sh',save_path= train_data_path)
     #MMI.save_weights(os.path.join(train_data_path,'weights.h5'))
 
 if __name__ == '__main__':

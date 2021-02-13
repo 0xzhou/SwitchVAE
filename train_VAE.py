@@ -75,6 +75,7 @@ def main(args):
 
     # Total loss
     if loss_type == 'bce':
+        print('Using VAE model with only bce_loss')
         total_loss = BCE_loss
     elif loss_type == 'vae':
         print('Using VAE model')
@@ -101,9 +102,9 @@ def main(args):
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path+'/training_log'),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(train_data_path,'weights_{epoch:03d}-{val_loss:.4f}.h5'),
+            filepath=os.path.join(train_data_path,'weights_{epoch:03d}_{val_loss:.4f}.h5'),
             save_weights_only=False,
-            period=4
+            period=50
         )
     ]
 

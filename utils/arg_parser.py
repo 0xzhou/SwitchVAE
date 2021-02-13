@@ -126,3 +126,34 @@ def parse_test_arguments(argv):
                         default=200)
 
     return parser.parse_args(argv)
+
+def parse_dataset_arguments(argv):
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--category', type=str,
+                        help='the category in the dataset, normally is a 8-digits numbber',
+                        default=None)
+
+    parser.add_argument('--voxel_dataset_path', type=str,
+                        help='the path of volumetric data of a category',
+                        default=None)
+
+    parser.add_argument('--image_dataset_path', type=str,
+                        help='the path of image data of a category',
+                        default=None)
+
+    parser.add_argument('--split_scale', nargs='+', type=float,
+                        help='ration for train and test data',
+                        default=None)
+
+    parser.add_argument('--save_path', type=str,
+                        help='the path to save the processed dataset',
+                        default=None)
+
+    parser.add_argument('--sub_num', type=int,
+                        help='the number of elements in test_sub dataset',
+                        default=100)
+    return parser.parse_args(argv)
+
+

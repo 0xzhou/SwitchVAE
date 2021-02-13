@@ -2,8 +2,10 @@
 import numpy as np
 import scipy.ndimage as nd
 from utils import binvox_rw
+from utils import globals as g
 import glob
 import os
+
 
 def read_voxel_data(model_path):
     with open(model_path, 'rb') as f:
@@ -43,3 +45,34 @@ def imagepath2matrix(image_dataset_path, single_image_shape=(137, 137, 3) ):
     for i, image in enumerate(image_files):
         images[i]= nd.imread(image,mode='RGB')
     return images
+
+def generate_MMI_batch_data(voxel_path, image_path, batch_size):
+
+    number_of_elements = len(os.listdir(voxel_path))
+    hash_id = os.listdir(voxel_path)
+
+    voxel_file_path = [os.path.join(voxel_path,id) for id in hash_id]
+    image_file_path = [os.path.join(image_path,id) for id in hash_id]
+
+    while 1:
+        for start_idx in range(number_of_elements-batch_size):
+            excerpt = slice(start_idx, start_idx + batch_size)
+
+            image_one_batch_files = image_file_path[excerpt]
+            images_one_batch = np.zeros((batch_size,24) + g.IMAGE_SHAPE, dtype=np.float32)
+            for i, element in enumerate(image_one_batch_files):
+                images_one_batch[i] = imagepath2matrix(element)
+
+            voxel_one_batch_files = voxel_file_path[excerpt]
+            voxel_one_batch = np.zeros((batch_size,) + g.VOXEL_INPUT_SHAPE, dtype=np.float32)
+            for i, element in enumerate(voxel_one_batch_files):
+                model = glob.glob(element+'/*')
+                model = read_voxel_data(model)
+                voxel_one_batch[i] = model.astype(np.float32)
+            voxel_one_batch = 3.0 * voxel_one_batch - 1.0
+
+            yield [images_one_batch, voxel_one_batch],
+
+
+
+

@@ -7,7 +7,7 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 
-input_shape = (1, 32, 32, 32)
+import utils.globals as g
 
 def sampling(args):
     mu, sigma = args
@@ -18,7 +18,7 @@ def sampling(args):
     return mu + K.exp(0.5 * sigma) * epsilon
 
 def get_model(z_dim = 200):
-    enc_in = Input(shape = input_shape)
+    enc_in = Input(shape = g.VOXEL_INPUT_SHAPE)
 
     enc_conv1 = BatchNormalization()(
         Conv3D(

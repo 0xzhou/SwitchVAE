@@ -50,7 +50,7 @@ def main(args):
         for i in range(reconstructions.shape[0]):
             shutil.copy2('./dataset/03001627_test_sub/'+hash[i]+'.binvox', test_result_path)
             if save_the_img:
-                shutil.copy2('./dataset/03001627_test_sub_images/' + hash[i] + '.png', test_result_path)
+                shutil.copy2('./dataset/03001627_test_sub_visualization/' + hash[i] + '.png', test_result_path)
 
     # save the generated objects files
     for i in range(reconstructions.shape[0]):
