@@ -11,7 +11,11 @@ scikit-image 0.17.2
 
 ### Dataset
 
-We use the [ShapeNetCore](https://www.shapenet.org/download/shapenetcore) dataset, in this Github repository we only provide the **volumetric data** in .binvox files of **chair class(03001627)** for training and testing, which is under `./dataset`. If you want to train with many other different type of objects, the complete dataset is available in their website.
+We use the [ShapeNetCore](https://www.shapenet.org/download/shapenetcore) dataset, for space consideration, in this repository we only provide the **volumetric data** in .binvox files of **chair class(03001627)** for training and testing VAE, which is under `./dataset`. 
+
+If you want to train with many other different type of objects, the complete dataset is available in website above, it requires an account to download them. Besides, Stanford university also provide the same dataset under: https://cvgl.stanford.edu/data2/, which is convenient to download. The volumetric data is under `ShapeNetVox32.tgz` and the image data is under `ShapeNetRendering.tgz`.
+
+
 
 - Volumetric data
 
@@ -25,11 +29,17 @@ In `03001627_test_sub_pics`, you could see the ground truth image of the 100 tes
 
 - Image data
 
-If you want to train the MMI-VAE model, both volumetric data and image data are required. For the space consideration, the image dataset is available here:
+If you want to train the MMI-VAE model, both volumetric data and image data are required. You should download the dataset and process it with our script, to make the dataset compatible with training.
 
-**ShapeNet** rendered images http://cvgl.stanford.edu/data2/ShapeNetRendering.tgz
+Set the path of volumetric data and image data in `process_dataset.sh`, the original dataset of one category will be  divided into 3 subsets respectively: `train`, `test` and `test_sub`. There is also other configurations you can set, like split ratio etc, the details are in the script.
 
+Process the dataset:
 
+```
+sh process_dataset.sh
+```
+
+ 
 
 ### Training
 
@@ -92,5 +102,13 @@ sh run_testing.sh
 
 
 
+### Visualization
 
+To visualize the loss during the training process, use tensorboard to load the training data. After training, the loss during training was saved in the folder named by the timestamp.
+
+To visualize the loss:
+
+```sh
+tensorboard path_of_training_data_folder
+```
 
