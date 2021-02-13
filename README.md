@@ -25,7 +25,7 @@ We also divide it into a train set and a test set, the `/dataset/03001627_train`
 
 In testing, if you want to generate images of the reconstructed objects at the same time, **it is recommended** to use this `/dataset/03001627_test_sub`, which consists of 100 objects from the 1000 test objects, because we use CPU to generate images, it takes about 10 minutes to test and generate images on 100 objects.
 
-In `03001627_test_sub_pics`, you could see the ground truth image of the 100 test objects.
+In `03001627_test_sub_visualization`, you could see the ground truth image of the 100 test objects.
 
 - Image data
 
@@ -109,6 +109,6 @@ To visualize the loss during the training process, use tensorboard to load the t
 To visualize the loss:
 
 ```sh
-tensorboard path_of_training_data_folder
+tensorboard --logdir path_of_training_data_folder
 ```
 
