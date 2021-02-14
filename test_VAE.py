@@ -36,7 +36,7 @@ def main(args):
 
     # Set the weight files and test dataset path
     vae.load_weights(weights_path)
-    data_test, hash = data_IO.voxelpath2matrix(test_data_path)
+    data_test, hash = data_IO.voxeldataset2matrix(test_data_path)
 
     reconstructions = vae.predict(data_test)
     reconstructions[reconstructions > 0] = 1

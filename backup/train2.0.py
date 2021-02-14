@@ -63,7 +63,7 @@ def main(args):
     # vae = model['vae']
 
 
-    data_train, hash= data_IO.voxelpath2matrix(dataset)
+    data_train, hash= data_IO.voxeldataset2matrix(dataset)
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=train_data_path)
 
     model.fit(

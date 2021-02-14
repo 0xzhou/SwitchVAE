@@ -1,9 +1,11 @@
 
 import os, shutil, random, sys
-from utils import arg_parser
+import arg_parser
 
 def create_dataset(category, voxel_dataset_path, image_dataset_path, split_scale, save_path, sub_num):
     '''
+    The script will create subdate set for training and testing from volumentric data and image data.
+
     Args:
         category: the category in the dataset, normally is a 8-digits number
         split_scale: (number of train samples, number of test samples), like (0.8:0.2)
@@ -12,7 +14,7 @@ def create_dataset(category, voxel_dataset_path, image_dataset_path, split_scale
     Returns: 0
     '''
 
-    save_path = os.path.join(save_path, category)
+    save_path = os.path.join(save_path, category+'_processed')
     os.makedirs(save_path)
 
     object_number = len(os.listdir(voxel_dataset_path))

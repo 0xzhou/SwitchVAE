@@ -12,7 +12,10 @@ def read_voxel_data(model_path):
         model = binvox_rw.read_as_3d_array(f)
         return model.data
 
-def voxelpath2matrix(voxel_dataset_path, padding = False):
+def voxeldataset2matrix(voxel_dataset_path, padding = False):
+    '''
+    Transform the special dataset into arrays, in special dataset, objects are in the 'hash_id.binvox' form
+    '''
 
     voxels_path = glob.glob(voxel_dataset_path + '/*')
     voxels_name = os.listdir(voxel_dataset_path)
@@ -46,6 +49,22 @@ def imagepath2matrix(image_dataset_path, single_image_shape=(137, 137, 3) ):
         images[i]= nd.imread(image,mode='RGB')
     return images
 
+def voxelpath2matrix(voxel_dataset_path, padding = False):
+    voxel_files = glob.glob(voxel_dataset_path+'/*')
+    voxel_hash = os.listdir(voxel_dataset_path)
+
+    num_objects = len(os.listdir(voxel_dataset_path))
+    voxels = np.zeros((num_objects,)+g.VOXEL_INPUT_SHAPE, dtype=np.float32)
+    for i, name in enumerate(voxel_files):
+        name = glob.glob(name +'/*binvox')
+        model = read_voxel_data(name[0])
+        if padding:
+            model = nd.zoom(model, (0.75, 0.75, 0.75), mode='constant', order=0)
+            model = np.pad(model, ((4, 4), (4, 4), (4, 4)), 'constant')
+        voxels[i] = model.astype(np.float32)
+    return 3.0 * voxels - 1, voxel_hash
+
+
 def generate_MMI_batch_data(voxel_path, image_path, batch_size):
 
     number_of_elements = len(os.listdir(voxel_path))
@@ -69,9 +88,10 @@ def generate_MMI_batch_data(voxel_path, image_path, batch_size):
                 model = glob.glob(element+'/*')
                 model = read_voxel_data(model)
                 voxel_one_batch[i] = model.astype(np.float32)
+                break
             voxel_one_batch = 3.0 * voxel_one_batch - 1.0
 
-            yield [images_one_batch, voxel_one_batch],
+            yield [images_one_batch, voxel_one_batch]
 
 
 

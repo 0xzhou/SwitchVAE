@@ -6,6 +6,7 @@ import shutil, sys
 from MMI import *
 from utils import save_volume, data_IO, arg_parser
 from utils.model import get_img_encoder, get_voxel_encoder, get_voxel_decoder
+from utils import globals as g
 
 ConFig=tf.ConfigProto()
 ConFig.gpu_options.allow_growth=True
@@ -14,7 +15,6 @@ session=tf.Session(config=ConFig)
 def main(args):
 
     weights_path = args.weights_file
-    test_result_path = args.save_dir + '/test1/'
     save_the_img = args.generate_img
     save_the_ori = args.save_ori
     voxel_data_path = args.voxel_data_dir
@@ -23,9 +23,11 @@ def main(args):
 
     z_dim = args.latent_vector_size
 
-    # Method1: Create new model that has only one input form and load specific part of trained weights
+    # Create new model that has only one input form and load specific part of trained weights
     if input_form == 'voxel':
-        voxel_input = Input(shape=(1, 32, 32, 32))
+        test_result_path = args.save_dir + '/test_sub_voxel_input'
+
+        voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
         voxel_encoder = get_voxel_encoder(z_dim)
         z = voxel_encoder(voxel_input)
         decoder = get_voxel_decoder(z_dim)
@@ -37,9 +39,11 @@ def main(args):
         reconstructions = model.predict(voxel_test_data)
 
     elif input_form == 'image':
-        image_input = Input(shape=(24, 137, 137, 3))
-        image_encoder = get_img_encoder(input_shape=(24, 137, 137, 3), z_dim=z_dim, img_shape=(137, 137, 3),
-                                        num_views=6)
+        test_result_path = args.save_dir + '/test_sub_image_input'
+
+        image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
+        image_encoder = get_img_encoder(z_dim)
+
         z = image_encoder(image_input)
         decoder = get_voxel_decoder(z_dim)
         output = decoder(image_encoder(image_input))
@@ -47,7 +51,7 @@ def main(args):
         model.load_weights(weights_path, by_name=True)
 
         num_objects = len(os.listdir(image_data_path))
-        images = np.zeros((num_objects,) + (24, 137, 137, 3), dtype=np.float32)
+        images = np.zeros((num_objects,) + g.VIEWS_IMAGE_SHAPE, dtype=np.float32)
         object_files = os.listdir(image_data_path)
         hash = object_files
 
@@ -56,38 +60,6 @@ def main(args):
             images[i] = data_IO.imagepath2matrix(image_path)
         reconstructions = model.predict(images)
 
-    # Method2: Create MMI model and take some parts of it to build new model that has only one input form
-
-    # MMI = get_MMI(z_dim, 'switch')['MMI']
-    # MMI.load_weights(weights_path)
-    #
-    # # Create new model from MMI which takes only voxel or image as input
-    # decoder = MMI.get_layer(name='Voxel_Generator')
-    # if input_form == 'voxel':
-    #     voxel_input = Input(shape=(1, 32, 32, 32))
-    #     voxel_encoder = MMI.get_layer(name='Voxel_VAE')
-    #     output = decoder(voxel_encoder(voxel_input))
-    #     model = Model(voxel_input, output, name='test_voxel_VAE')
-    #
-    #     voxel_test_data, hash = data_IO.voxelpath2matrix(voxel_data_path)
-    #     reconstructions = model.predict(voxel_test_data)
-    #
-    # elif input_form == 'image':
-    #     image_input = Input(shape=(24, 137, 137, 3))
-    #     image_encoder = MMI.get_layer(name='Image_MVCNN_VAE')
-    #     output = decoder(image_encoder(image_input))
-    #     model = Model(image_input, output, name='test_image_VAE')
-    #
-    #     num_objects = len(os.listdir(image_data_path))
-    #     images = np.zeros((num_objects,) + (24, 137, 137, 3), dtype=np.float32)
-    #     object_files = os.listdir(image_data_path)
-    #     hash = object_files
-    #
-    #     for i, object in enumerate(object_files):
-    #         image_path = os.path.join(image_data_path, object)
-    #         images[i] = data_IO.imagepath2matrix(image_path)
-    #     print("The shape of test image data:", images.shape)
-    #     reconstructions = model.predict(images)
 
     reconstructions[reconstructions > 0] = 1
     reconstructions[reconstructions < 0] = 0
@@ -95,12 +67,17 @@ def main(args):
     if not os.path.exists(test_result_path):
         os.makedirs(test_result_path)
 
-    # copy the original test dataset file
+    # save the original test dataset file and generate the image
     if save_the_ori:
-        for i in range(reconstructions.shape[0]):
-            shutil.copy2('./dataset/03001627_test_sub/'+hash[i]+'.binvox', test_result_path)
+        for i, hash_id in enumerate(os.listdir(voxel_data_path)):
+            voxel_file = os.path.join(voxel_data_path,hash_id,'model.binvox')
+            shutil.copy2(voxel_file, test_result_path)
+            voxel_file = os.path.join(test_result_path,'model.binvox')
+            new_voxel_file = os.path.join(test_result_path,hash_id+'.binvox')
+            os.rename(voxel_file, new_voxel_file)
+
             if save_the_img:
-                shutil.copy2('./dataset/03001627_test_sub_visualization/' + hash[i] + '.png', test_result_path)
+                save_volume.binvox2image(new_voxel_file,hash_id,test_result_path)
 
     # save the generated objects files
     for i in range(reconstructions.shape[0]):

@@ -9,8 +9,6 @@ from tensorflow.keras import backend as K
 
 from utils import globals as g
 
-
-
 def sampling(args):
     mu, sigma = args
     batch = K.shape(mu)[0]

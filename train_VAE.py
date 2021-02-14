@@ -60,8 +60,6 @@ def main(args):
     decoder = model['decoder']
     vae = model['vae']
 
-    # Loss functions
-
     # kl-divergence
     kl_loss_term = kl_loss(mu, sigma)
 
@@ -95,7 +93,7 @@ def main(args):
     plot_model(encoder, to_file = os.path.join(train_data_path,'vae_encoder.pdf'), show_shapes = True)
     plot_model(decoder, to_file = os.path.join(train_data_path,'vae_decoder.pdf'), show_shapes = True)
 
-    data_train, hash = data_IO.voxelpath2matrix(voxel_dataset_path)
+    data_train, hash = data_IO.voxeldataset2matrix(voxel_dataset_path)
 
     train_callbacks= [
         LearningRateScheduler(learning_rate_scheduler),

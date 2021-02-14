@@ -4,12 +4,12 @@ import tensorflow.keras as keras
 
 from tensorflow.keras.utils import plot_model
 from tensorflow.keras.activations import sigmoid
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras import backend as K
 
 from MMI import *
-from utils import data_IO, arg_parser, save_train, custom_loss, process_dataset
+from utils import data_IO, arg_parser, save_train, custom_loss
 import sys, os, glob
 
 learning_rate_1 = 0.0001
@@ -88,6 +88,7 @@ def main(args):
 
     MMI.add_loss(total_loss)
     sgd = SGD(lr = learning_rate_1, momentum = momentum, nesterov = True)
+    adam = Adam(lr=learning_rate_1)
 
     MMI.compile(optimizer = sgd, metrics = ['accuracy'])
 
@@ -95,36 +96,49 @@ def main(args):
     plot_model(encoder, to_file = os.path.join(train_data_path,'MMI-encoder.pdf'), show_shapes = True)
     plot_model(decoder, to_file = os.path.join(train_data_path,'MMI-decoder.pdf'), show_shapes = True)
 
-    # Load train data
-    voxel_data_train, hash = data_IO.voxelpath2matrix(voxel_dataset_path) # Number of element * 1 * 32 * 32 * 32, hash_ID
-    image_path_list = [os.path.join(image_dataset_path,id) for id in hash] # Get the path list which corresponds with the objects in voxel_data_train
 
-    def generate_batch_data(voxel_input =None, image_path_list=None, batch_size =None):
+    def generate_MMI_batch_data(voxel_path, image_path, batch_size):
+
+        number_of_elements = len(os.listdir(voxel_path))
+        hash_id = os.listdir(voxel_path)
+
+        voxel_file_path = [os.path.join(voxel_path, id) for id in hash_id]
+        image_file_path = [os.path.join(image_path, id) for id in hash_id]
+
         while 1:
-            for start_idx in range(len(voxel_input) - batch_size):
+            for start_idx in range(number_of_elements - batch_size):
                 excerpt = slice(start_idx, start_idx + batch_size)
 
-                image_path_onebatch = image_path_list[excerpt]
-                batch_images = np.zeros((batch_size,24) + g.IMAGE_SHAPE, dtype=np.float32)
-                for i, object in enumerate(image_path_onebatch):
-                    batch_images[i] = data_IO.imagepath2matrix(object)
+                image_one_batch_files = image_file_path[excerpt]
+                images_one_batch = np.zeros((batch_size, 24) + g.IMAGE_SHAPE, dtype=np.float32)
+                for i, element in enumerate(image_one_batch_files):
+                    images_one_batch[i] = data_IO.imagepath2matrix(element)
 
-                yield [batch_images, voxel_input[excerpt]], vol_inputs[excerpt]
+                voxel_one_batch_files = voxel_file_path[excerpt]
+                voxel_one_batch = np.zeros((batch_size,) + g.VOXEL_INPUT_SHAPE, dtype=np.float32)
+                for i, element in enumerate(voxel_one_batch_files):
+                    model = glob.glob(element + '/*')
+                    model = data_IO.read_voxel_data(model[0])
+                    voxel_one_batch[i] = model.astype(np.float32)
+                voxel_one_batch = 3.0 * voxel_one_batch - 1.0
+
+                yield [images_one_batch, voxel_one_batch], vol_inputs[excerpt]
 
     train_callbacks= [
+        tf.keras.callbacks.LearningRateScheduler(learning_rate_scheduler),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path+'/training_log'),
         tf.keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(train_data_path,'weights_{epoch:03d}_{loss:.4f}.h5'),
             save_weights_only=True,
-            period=50
+            period=30
         )
     ]
 
     MMI.fit_generator(
-        generate_batch_data(voxel_data_train, image_path_list, batch_size),
-        steps_per_epoch= len(voxel_data_train) // batch_size,
-        #steps_per_epoch= 200,
+        generate_MMI_batch_data(voxel_dataset_path,image_dataset_path, batch_size),
+        steps_per_epoch= len(os.listdir(voxel_dataset_path)) // batch_size,
+        #steps_per_epoch= 100,
         epochs = epoch_num,
         callbacks=train_callbacks
     )
