@@ -156,4 +156,43 @@ def parse_dataset_arguments(argv):
                         default=100)
     return parser.parse_args(argv)
 
+def parse_generate_latent_arguments(argv):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--weights_file', type=str,
+                        help='the path of weights in .h5 file.',
+                        default=None)
+
+    parser.add_argument('--input_form', type=str, choices=['voxel', 'image'],
+                        help='The input form of test model', default=None)
+
+    parser.add_argument('--voxel_data_dir', type=str,
+                        help='the path of test data in .binvox.',
+                        default=None)
+
+    parser.add_argument('--image_data_dir', type=str,
+                        help='the path of test image data.',
+                        default=None)
+
+    parser.add_argument('--model_dir', type=str,
+                        help='the path trained model in .h5 form',
+                        default=None)
+
+    parser.add_argument('--save_dir', type=str,
+                        help='The directory to save the test data.',
+                        default='../saved_models/')
+
+    parser.add_argument('--save_ori', type=bool,
+                        help='Save the original test data in the save_dir.',
+                        default=True)
+
+    parser.add_argument('--generate_img', type=bool,
+                        help='Generate images from .binvox files',
+                        default=True)
+
+    parser.add_argument('--latent_vector_size', type=int,
+                        help='The size of the embedding layers.',
+                        default=200)
+
+    return parser.parse_args(argv)
 

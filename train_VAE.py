@@ -46,7 +46,7 @@ def main(args):
     train_data_path = save_train.create_log_dir(save_path)
 
     # Model selection
-    model = get_model(z_dim)
+    model = get_voxel_VAE(z_dim)
     print("Using the latent space size is", args)
 
     # Get model structures

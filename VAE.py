@@ -17,7 +17,7 @@ def sampling(args):
 
     return mu + K.exp(0.5 * sigma) * epsilon
 
-def get_model(z_dim = 200):
+def get_voxel_VAE(z_dim = 200):
     enc_in = Input(shape = g.VOXEL_INPUT_SHAPE)
 
     enc_conv1 = BatchNormalization()(
@@ -76,7 +76,7 @@ def get_model(z_dim = 200):
         sampling,
         output_shape = (z_dim, ))([mu, sigma])
 
-    encoder = Model(enc_in, [mu, sigma, z])
+    encoder = Model(enc_in, [mu, sigma, z], name='Voxel_Variational_Encoder')
 
     dec_in = Input(shape = (z_dim, ))
 
@@ -135,11 +135,11 @@ def get_model(z_dim = 200):
             kernel_initializer = 'glorot_normal',
             data_format = 'channels_first')(dec_conv4))
 
-    decoder = Model(dec_in, dec_conv5)
+    decoder = Model(dec_in, dec_conv5, name= 'Voxel_Generator')
 
     dec_conv5 = decoder(encoder(enc_in)[2])
 
-    vae = Model(enc_in, dec_conv5)
+    vae = Model(enc_in, dec_conv5, name='Voxel_VAE')
 
     return {'inputs': enc_in, 
             'outputs': dec_conv5,

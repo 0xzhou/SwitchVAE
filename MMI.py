@@ -10,8 +10,10 @@ def switch(args):
     img_output, vol_output = args[0], args[1]
     switch = random.random()
     if switch > g.SWITCH_PROBABILITY:
-        return [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*img_output[2]]
+        print("Use the image input latent vector")
+        #return [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*vol_output[2]]
     else:
+        print("Use the voxel input latent vector")
         return [vol_output[0]+0*img_output[0], vol_output[1]+0*img_output[1], vol_output[2]+0*img_output[2]]
 
 def get_MMI(z_dim = 200, train_mode = None):

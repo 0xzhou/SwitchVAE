@@ -14,6 +14,7 @@ import sys, os, glob
 
 learning_rate_1 = 0.0001
 learning_rate_2 = 0.005
+learning_rate_3 = 0.001
 momentum = 0.9
 
 ConFig=tf.ConfigProto()
@@ -88,14 +89,17 @@ def main(args):
 
     MMI.add_loss(total_loss)
     sgd = SGD(lr = learning_rate_1, momentum = momentum, nesterov = True)
-    adam = Adam(lr=learning_rate_1)
+    adam = Adam(lr=learning_rate_3)
 
-    MMI.compile(optimizer = sgd, metrics = ['accuracy'])
+    MMI.compile(optimizer = adam, metrics = ['accuracy'])
 
     plot_model(MMI, to_file = os.path.join(train_data_path,'MMI.pdf'), show_shapes = True)
     plot_model(encoder, to_file = os.path.join(train_data_path,'MMI-encoder.pdf'), show_shapes = True)
     plot_model(decoder, to_file = os.path.join(train_data_path,'MMI-decoder.pdf'), show_shapes = True)
 
+    save_train.save_train_config(__file__, './run_training.sh', './run_testing.sh'
+                                 './MMI.py', './utils/arg_parser.py', './utils/model.py',
+                                 './utils/globals.py',save_path= train_data_path)
 
     def generate_MMI_batch_data(voxel_path, image_path, batch_size):
 
@@ -143,9 +147,7 @@ def main(args):
         callbacks=train_callbacks
     )
 
-    save_train.save_train_config(__file__, './run_training.sh',
-                                 './MMI.py', './utils/arg_parser.py',
-                                 './run_testing.sh',save_path= train_data_path)
+
     #MMI.save_weights(os.path.join(train_data_path,'weights.h5'))
 
 if __name__ == '__main__':
