@@ -1,6 +1,7 @@
 
-import os, shutil, random, sys
-import arg_parser
+
+import os, shutil, sys
+from utils import arg_parser, save_volume
 
 def create_dataset(category, voxel_dataset_path, image_dataset_path, split_scale, save_path, sub_num):
     '''
@@ -20,14 +21,17 @@ def create_dataset(category, voxel_dataset_path, image_dataset_path, split_scale
     object_number = len(os.listdir(voxel_dataset_path))
     train_dataset_size = int(object_number * split_scale[0])
     voxel_file_names = os.listdir(voxel_dataset_path)
-    random.shuffle(voxel_file_names)
+
+    #random.shuffle(voxel_file_names)
 
     voxel_train_names = voxel_file_names[:train_dataset_size]
     voxel_test_names = voxel_file_names[train_dataset_size:]
     voxel_test_sub_names = voxel_file_names[train_dataset_size: train_dataset_size+sub_num]
-    vol_train_dataset_save_path = os.path.join(save_path,'voxel','train')
-    vol_test_dataset_save_path = os.path.join(save_path, 'voxel','test')
-    vol_test_sub_dataset_save_path = os.path.join(save_path, 'voxel','test_sub')
+    vol_train_dataset_save_path = os.path.join(save_path, 'voxel', 'train')
+    vol_test_dataset_save_path = os.path.join(save_path, 'voxel', 'test')
+    vol_test_sub_dataset_save_path = os.path.join(save_path, 'voxel', 'test_sub')
+    vol_test_sub_dataset_visualized_save_path = os.path.join(save_path, 'voxel', 'test_sub_visulization')
+    os.makedirs(vol_test_sub_dataset_visualized_save_path)
 
     img_train_dataset_save_path = os.path.join(save_path, 'image','train')
     img_test_dataset_save_path = os.path.join(save_path, 'image','test')
@@ -41,6 +45,17 @@ def create_dataset(category, voxel_dataset_path, image_dataset_path, split_scale
 
     copy_object_data(voxel_test_sub_names, voxel_dataset_path, image_dataset_path,
                      vol_test_sub_dataset_save_path, img_test_sub_dataset_save_path)
+
+    # Visulize the test_sub dataset
+    for id in voxel_test_sub_names:
+        voxel_file = os.path.join(vol_test_sub_dataset_save_path,id,'model.binvox')
+        shutil.copy2(voxel_file, vol_test_sub_dataset_visualized_save_path)
+        voxel_file = os.path.join(vol_test_sub_dataset_visualized_save_path,'model.binvox')
+        new_name = os.path.join(vol_test_sub_dataset_visualized_save_path,id+'.binvox')
+        os.rename(voxel_file, new_name)
+
+        save_volume.binvox2image_2(new_name, id, vol_test_sub_dataset_visualized_save_path)
+
 
 def copy_object_data(id_list, vol_path, img_path, vol_save_path, img_save_path):
 

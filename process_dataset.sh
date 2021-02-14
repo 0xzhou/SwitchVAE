@@ -1,5 +1,5 @@
 
-python ./utils/process_dataset.py \
+python process_dataset.py \
           --category '03001627' \
           --voxel_dataset_path '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetVox32/03001627' \
           --image_dataset_path '/home/zmy/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627' \

@@ -1,11 +1,9 @@
 
 import numpy as np
+import glob, os
 import scipy.ndimage as nd
 from utils import binvox_rw
 from utils import globals as g
-import glob
-import os
-
 
 def read_voxel_data(model_path):
     with open(model_path, 'rb') as f:
@@ -36,6 +34,7 @@ def voxeldataset2matrix(voxel_dataset_path, padding = False):
 def write_binvox_file(pred, filename):
     with open(filename, 'w') as f:
         voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xzy')
+        #voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xyz')
         binvox_rw.write(voxel, f)
         f.close()
 

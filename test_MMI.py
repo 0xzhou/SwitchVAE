@@ -3,6 +3,9 @@ import numpy as np
 import tensorflow as tf
 import shutil, sys
 
+from tensorflow.keras.layers import Input
+from tensorflow.keras.models import Model
+
 from MMI import *
 from utils import save_volume, data_IO, arg_parser
 from utils.model import get_img_encoder, get_voxel_encoder, get_voxel_decoder
@@ -69,19 +72,16 @@ def main(args):
 
     # save the original test dataset file and generate the image
     if save_the_ori:
-        for i, hash_id in enumerate(os.listdir(voxel_data_path)):
-            voxel_file = os.path.join(voxel_data_path,hash_id,'model.binvox')
-            shutil.copy2(voxel_file, test_result_path)
-            voxel_file = os.path.join(test_result_path,'model.binvox')
-            new_voxel_file = os.path.join(test_result_path,hash_id+'.binvox')
-            os.rename(voxel_file, new_voxel_file)
-
-            if save_the_img:
-                save_volume.binvox2image(new_voxel_file,hash_id,test_result_path)
+        voxel_path = voxel_data_path[:-9]
+        ori_files_path = os.path.join(voxel_path,'test_sub_visulization')
+        ori_files = os.listdir(ori_files_path)
+        for file in ori_files:
+            file = os.path.join(ori_files_path,file)
+            shutil.copy2(file, test_result_path)
 
     # save the generated objects files
     for i in range(reconstructions.shape[0]):
-        save_volume.save_binvox_output(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin= True, save_img= save_the_img)
+        save_volume.save_binvox_output_2(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin= True, save_img= save_the_img)
 
 if __name__ == '__main__':
     main(arg_parser.parse_test_arguments(sys.argv[1:]))
