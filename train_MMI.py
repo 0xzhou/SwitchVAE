@@ -97,7 +97,7 @@ def main(args):
     plot_model(encoder, to_file = os.path.join(train_data_path,'MMI-encoder.pdf'), show_shapes = True)
     plot_model(decoder, to_file = os.path.join(train_data_path,'MMI-decoder.pdf'), show_shapes = True)
 
-    save_train.save_train_config(__file__, './run_training.sh', './run_testing.sh'
+    save_train.save_train_config(__file__, './run_training.sh', './run_testing.sh',
                                  './MMI.py', './utils/arg_parser.py', './utils/model.py',
                                  './utils/globals.py',save_path= train_data_path)
 

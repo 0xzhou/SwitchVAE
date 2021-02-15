@@ -11,7 +11,7 @@ def switch(args):
     switch = random.random()
     if switch > g.SWITCH_PROBABILITY:
         print("Use the image input latent vector")
-        #return [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*vol_output[2]]
+        return [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*vol_output[2]]
     else:
         print("Use the voxel input latent vector")
         return [vol_output[0]+0*img_output[0], vol_output[1]+0*img_output[1], vol_output[2]+0*img_output[2]]
