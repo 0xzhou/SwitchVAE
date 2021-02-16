@@ -7,6 +7,7 @@ python 3.6
 tensorflow-gpu 1.13.1
 matplotlib 3.3.2
 scikit-image 0.17.2 
+pillow 8.0.1
 ```
 
 ### Dataset
@@ -97,6 +98,10 @@ Start testing
 ```sh
 sh run_testing.sh
 ```
+
+- Latent space analyse & Interpolation
+
+After training, you could load the `.h` weights file into model. `analyse/generate_latent.py` supports to map the volumetric input or image input to latent vectors and save them in `.pkl` form, then you could use `analyse/interpolation.py` to load the saved latent information and choose 2 objects and do interpolation between them.
 
 
 

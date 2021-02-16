@@ -21,3 +21,21 @@ def save_train_config(*file_list, save_path):
         for file in file_list:
             shutil.copy2(file, train_config_dir)
 
+def save_config_pro(save_path):
+
+    train_config_save_dir = save_path + '/training_configuration'
+    os.makedirs(train_config_save_dir)
+
+    current_path = os.getcwd()
+    print("Current path is", current_path)
+    files = os.listdir(current_path)
+    print("Files under current path are", files)
+    for file in files:
+        if file.endswith('.py') or file.endswith('.sh'):
+            file_path = os.path.join(current_path,file)
+            shutil.copy2(file_path,train_config_save_dir)
+
+    # Copy Folders
+    shutil.copytree('./utils', os.path.join(train_config_save_dir, 'utils'))
+    shutil.copytree('./analyse', os.path.join(train_config_save_dir, 'analyse'))
+

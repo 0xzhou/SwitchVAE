@@ -7,8 +7,10 @@ def weighted_binary_crossentropy(target, output):
     loss = -(98.0 * target * K.log(output) + 2.0 * (1.0 - target) * K.log(1.0 - output)) / 100.0
     return loss
 
-def kl_loss(z_mean,z_log_sigma_square):
-    return - 0.5 * K.mean(1 + z_mean - K.square(z_mean) - K.exp(z_log_sigma_square))
+
+def kl_loss(z_mean, z_log_sigma):
+    return - 0.5 * K.mean(1 + 2 * z_log_sigma - K.square(z_mean) - K.exp(2 * z_log_sigma))
+
 
 def tc_term(beta, z_sampled, z_mean, z_log_squared_scale):
     """
@@ -28,7 +30,6 @@ def tc_term(beta, z_sampled, z_mean, z_log_squared_scale):
     :return: Total correlation penalty
     """
     tc = total_correlation(z_sampled, z_mean, z_log_squared_scale, 'normal')
-
     return (beta - 1.) * tc, tc
 
 
@@ -38,6 +39,7 @@ def gaussian_log_density(samples, mean, log_squared_scale):
     inv_sigma = tf.math.exp(-log_squared_scale)
     tmp = (samples - mean)
     return -0.5 * (tmp * tmp * inv_sigma + log_squared_scale + normalization)
+
 
 def total_correlation(z, z_mean, z_log_squared_scale, prior):
     """Estimate of total correlation on a batch.

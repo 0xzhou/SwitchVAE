@@ -29,7 +29,7 @@ def get_MMI(z_dim = 200, train_mode = None):
 
     # Method1: Use "Switch" to train the latent vectors
     if train_mode == 'switch':
-        mu, sigma, z = Lambda(switch, output_shape=(z_dim,), name= 'Switch_Layer')([img_encoder_output, vol_encoder_output])
+        mu, log_sigma, z = Lambda(switch, output_shape=(z_dim,), name= 'Switch_Layer')([img_encoder_output, vol_encoder_output])
 
     # Method2: Add latent vectors from different input with weights to generate the latent vectors
     # elif train_mode == 'weighted_add':
@@ -45,7 +45,7 @@ def get_MMI(z_dim = 200, train_mode = None):
     #     z = concatenate([z_img, z_vol])
     #     z = Dense(units=z_dim, activation= 'tanh', name='FCC_Layer')(z)
 
-    MMI_encoder = Model([img_input, vol_input], [mu, sigma, z])
+    MMI_encoder = Model([img_input, vol_input], [mu, log_sigma, z])
     MMI_decoder = get_voxel_decoder(z_dim)
     decoded_vol = MMI_decoder(z)
 
@@ -60,7 +60,7 @@ def get_MMI(z_dim = 200, train_mode = None):
              'z_img': img_encoder_output[2],
              'z_vol': vol_encoder_output[2],
              'mu':mu,
-             'sigma': sigma,
+             'log_sigma': log_sigma,
              'z': z,
              'image_encoder': img_encoder,
              'voxel_encoder': vol_encoder,

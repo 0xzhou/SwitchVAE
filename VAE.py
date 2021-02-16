@@ -9,142 +9,93 @@ from tensorflow.keras import backend as K
 
 import utils.globals as g
 
+
 def sampling(args):
-    mu, sigma = args
+    mu, log_sigma = args
     batch = K.shape(mu)[0]
     dim = K.int_shape(mu)[1]
-    epsilon = K.random_normal(shape = (batch, dim))
+    epsilon = K.random_normal(shape=(batch,dim))
 
-    return mu + K.exp(0.5 * sigma) * epsilon
+    return mu + K.exp(log_sigma) * epsilon
 
-def get_model(z_dim = 200):
-    enc_in = Input(shape = g.VOXEL_INPUT_SHAPE)
+def get_voxel_VAE(z_dim = 200):
+    enc_in = Input(shape=g.VOXEL_INPUT_SHAPE, name='VoxEncoder_inputs')
 
-    enc_conv1 = BatchNormalization()(
-        Conv3D(
-            filters = 8,
-            kernel_size = (3, 3, 3),
-            strides = (1, 1, 1),
-            padding = 'valid',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(enc_in))
-    enc_conv2 = BatchNormalization()(
-        Conv3D(
-            filters = 16,
-            kernel_size = (3, 3, 3),
-            strides = (2, 2, 2),
-            padding = 'same',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(enc_conv1))
-    enc_conv3 = BatchNormalization()(
-        Conv3D(
-            filters = 32,
-            kernel_size = (3, 3, 3),
-            strides = (1, 1, 1),
-            padding = 'valid',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(enc_conv2))
-    enc_conv4 = BatchNormalization()(
-        Conv3D(
-            filters = 64,
-            kernel_size = (3, 3, 3),
-            strides = (2, 2, 2),
-            padding = 'same',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(enc_conv3))
+    enc_conv1 = BatchNormalization(name='VoxEncoder_bn1')(Conv3D(filters=8, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+                                                                 padding='valid', kernel_initializer='glorot_normal',
+                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv1')(enc_in))
 
-    enc_fc1 = BatchNormalization()(
-        Dense(
-            units = 343,
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu')(Flatten()(enc_conv4)))
-    mu = BatchNormalization()(
-        Dense(
-            units = z_dim,
-            kernel_initializer = 'glorot_normal',
-            activation = None)(enc_fc1))
-    sigma = BatchNormalization()(
-        Dense(
-            units = z_dim,
-            kernel_initializer = 'glorot_normal',
-            activation = None)(enc_fc1))
-    z = Lambda(
-        sampling,
-        output_shape = (z_dim, ))([mu, sigma])
+    enc_conv2 = BatchNormalization(name='VoxEncoder_bn2')(Conv3D(filters=16, kernel_size=(3, 3, 3), strides=(2, 2, 2),
+                                                                 padding='same', kernel_initializer='glorot_normal',
+                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv2')(enc_conv1))
 
-    encoder = Model(enc_in, [mu, sigma, z])
+    enc_conv3 = BatchNormalization(name='VoxEncoder_bn3')(Conv3D(filters=32, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+                                                                 padding='valid', kernel_initializer='glorot_normal',
+                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv3')(enc_conv2))
 
-    dec_in = Input(shape = (z_dim, ))
+    enc_conv4 = BatchNormalization(name='VoxEncoder_bn4')(Conv3D(filters=64, kernel_size=(3, 3, 3), strides=(2, 2, 2),
+                                                                 padding='same', kernel_initializer='glorot_normal',
+                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv4')(enc_conv3))
 
-    dec_fc1 = BatchNormalization()(
-        Dense(
-            units = 343,
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu')(dec_in))
-    dec_unflatten = Reshape(
-        target_shape = (1,7,7,7))(dec_fc1)
+    enc_fc1 = BatchNormalization(name='VoxEncoder_bn4')(Dense(units=343, kernel_initializer='glorot_normal',
+                                                              activation='elu', name='VoxEncoder_fcc1')(Flatten()(enc_conv4)))
 
-    dec_conv1 = BatchNormalization()(
-        Conv3DTranspose(
-            filters = 64,
-            kernel_size = (3, 3, 3),
-            strides = (1, 1, 1),
-            padding = 'same',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(dec_unflatten))
-    dec_conv2 = BatchNormalization()(
-        Conv3DTranspose(
-            filters = 32,
-            kernel_size = (3, 3, 3),
-            strides = (2, 2, 2),
-            padding = 'valid',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(dec_conv1))
-    dec_conv3 = BatchNormalization()(
-        Conv3DTranspose(
-            filters = 16,
-            kernel_size = (3, 3, 3),
-            strides = (1, 1, 1),
-            padding = 'same',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(dec_conv2))
-    dec_conv4 = BatchNormalization()(
-        Conv3DTranspose(
-            filters = 8,
-            kernel_size = (4, 4, 4),
-            strides = (2, 2, 2),
-            padding = 'valid',
-            kernel_initializer = 'glorot_normal',
-            activation = 'elu',
-            data_format = 'channels_first')(dec_conv3))
-    dec_conv5 = BatchNormalization(
-        beta_regularizer = l2(0.001),
-        gamma_regularizer = l2(0.001))(
-        Conv3DTranspose(
-            filters = 1,
-            kernel_size = (3, 3, 3),
-            strides = (1, 1, 1),
-            padding = 'same',
-            kernel_initializer = 'glorot_normal',
-            data_format = 'channels_first')(dec_conv4))
+    mu = BatchNormalization(name='VoxEncoder_bn_mu')(Dense(units=z_dim, kernel_initializer='glorot_normal',
+                                                         activation=None, name='VoxEncoder_mu')(enc_fc1))
 
-    decoder = Model(dec_in, dec_conv5)
+    log_sigma = BatchNormalization(name='VoxEncoder_bn_log_sigma')(Dense(units=z_dim, kernel_initializer='glorot_normal',
+                                                                activation=None, name='VoxEncoder_log_sigma')(enc_fc1))
+
+    z = Lambda(sampling, output_shape=(z_dim,), name='VoxEncoder_latent_vector')([mu, log_sigma])
+
+    encoder = Model(enc_in, [mu, log_sigma, z], name='Voxel_Encoder')
+
+    dec_in = Input(shape=(z_dim,), name='VoxDecoder_inputs')
+
+    dec_fc1 = BatchNormalization()(Dense(units=343, kernel_initializer='glorot_normal',
+                                         activation='elu', name='VoxDecoder_fcc1', )(dec_in))
+
+    dec_unflatten = Reshape(target_shape=(1, 7, 7, 7))(dec_fc1)
+
+    dec_conv1 = BatchNormalization(name='VoxDecoder_bn1')(
+        Conv3DTranspose(filters=64, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+                        padding='same', kernel_initializer='glorot_normal',
+                        activation='elu', name='VoxDecoder_conv1',
+                        data_format='channels_first')(dec_unflatten))
+
+    dec_conv2 = BatchNormalization(name='VoxDecoder_bn2')(
+        Conv3DTranspose(filters=32, kernel_size=(3, 3, 3), strides=(2, 2, 2),
+                        padding='valid', kernel_initializer='glorot_normal',
+                        activation='elu', name='VoxDecoder_conv2',
+                        data_format='channels_first')(dec_conv1))
+
+    dec_conv3 = BatchNormalization(name='VoxDecoder_bn3')(
+        Conv3DTranspose(filters=16, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+                        padding='same', kernel_initializer='glorot_normal',
+                        activation='elu', name='VoxDecoder_conv3',
+                        data_format='channels_first')(dec_conv2))
+
+    dec_conv4 = BatchNormalization(name='VoxDecoder_bn4')(
+        Conv3DTranspose(filters=8, kernel_size=(4, 4, 4), strides=(2, 2, 2),
+                        padding='valid', kernel_initializer='glorot_normal',
+                        activation='elu', name='VoxDecoder_conv4',
+                        data_format='channels_first')(dec_conv3))
+
+    dec_conv5 = BatchNormalization(beta_regularizer=l2(0.001), gamma_regularizer=l2(0.001), name='VoxDecoder_bn5') \
+        (Conv3DTranspose(filters=1, kernel_size=(3, 3, 3), strides=(1, 1, 1),
+                         padding='same', kernel_initializer='glorot_normal',
+                         data_format='channels_first', name='VoxDecoder_conv5', )(dec_conv4))
+
+    decoder = Model(dec_in, dec_conv5, name='Voxel_Decoder')
 
     dec_conv5 = decoder(encoder(enc_in)[2])
 
-    vae = Model(enc_in, dec_conv5)
+    vae = Model(enc_in, dec_conv5,name='Voxel_VAE')
 
     return {'inputs': enc_in, 
             'outputs': dec_conv5,
             'mu': mu,
-            'sigma': sigma,
+            'sigma': log_sigma,
             'z': z,
             'encoder': encoder,
             'decoder': decoder,

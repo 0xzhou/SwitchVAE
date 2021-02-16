@@ -13,3 +13,7 @@ l2_reg = keras.regularizers.l2(0.004)
 # weights in weighted addition of MMI model
 VOL_WEIGHT = 0.5
 IMG_WEIGHT = 0.5
+
+# parameter in preprocess images
+TRAIN_NO_BG_COLOR_RANGE= [[0, 255], [0, 255], [0, 255]]
+TEST_NO_BG_COLOR_RANGE = [[240, 240], [240, 240], [240, 240]]

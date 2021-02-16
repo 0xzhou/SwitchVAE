@@ -51,7 +51,7 @@ def parse_train_arguments(argv):
 
     parser.add_argument('--base_learning_rate', type=float,
                         help='The base learning rate for the model.',
-                        default=5e-4)
+                        default=0.002)
 
     parser.add_argument('--num_epochs', type=int,
                         help='The total number of epochs for training.',

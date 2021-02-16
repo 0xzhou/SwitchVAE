@@ -5,5 +5,6 @@ python train_MMI.py --loss btcvae  \
                 --save_dir ./training \
                 --num_epochs 150 \
                 --batch_size 6 \
+                --base_learning_rate 0.002 \
                 --beta 2 \
                 --latent_vector_size 128
