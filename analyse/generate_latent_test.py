@@ -52,6 +52,10 @@ def main(args):
         voxel_data, hash = data_IO.voxelpath2matrix(voxel_data_path)
 
         mu, sigma, z = voxel_encoder.predict(voxel_data)
+        p1, p2 = z[0], z[1]
+        print("The shape of p1", p1.shape)
+        latent_vectors = np.linspace(p1, p2, 11)
+
 
         # record latent vectors in dictionary and save it in .pkl form
         latent_dict = latent2dict(hash, mu, sigma, z)
@@ -60,7 +64,7 @@ def main(args):
         pickle.dump(latent_dict, save_latent_dict)
         save_latent_dict.close()
 
-        reconstructions = decoder.predict(z)
+        reconstructions = decoder.predict(latent_vectors)
         #reconstructions = model.predict(voxel_data)
 
     elif input_form == 'image':
@@ -101,17 +105,18 @@ def main(args):
         os.makedirs(reconstructions_save_path)
 
     # save the original test dataset file and generate the image
-    if save_the_ori:
-        voxel_path = voxel_data_path[:-9]
-        ori_files_path = os.path.join(voxel_path, 'test_sub_visulization')
-        ori_files = os.listdir(ori_files_path)
-        for file in ori_files:
-            file = os.path.join(ori_files_path, file)
-            shutil.copy2(file, reconstructions_save_path)
+    # if save_the_ori:
+    #     voxel_path = voxel_data_path[:-9]
+    #     ori_files_path = os.path.join(voxel_path, 'test_sub_visulization')
+    #     ori_files = os.listdir(ori_files_path)
+    #     for file in ori_files:
+    #         file = os.path.join(ori_files_path, file)
+    #         shutil.copy2(file, reconstructions_save_path)
 
     # save the generated objects files
     for i in range(reconstructions.shape[0]):
-        save_volume.save_binvox_output(reconstructions[i, 0, :], hash[i], reconstructions_save_path, '_gen', save_bin= True, save_img= save_the_img)
+        name = str(i)
+        save_volume.save_binvox_output(reconstructions[i, 0, :], name, reconstructions_save_path, '_gen', save_bin= True, save_img= save_the_img)
 
 if __name__ == '__main__':
     main(arg_parser.parse_test_arguments(sys.argv[1:]))

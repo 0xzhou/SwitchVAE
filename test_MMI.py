@@ -32,7 +32,7 @@ def main(args):
         z = voxel_encoder(voxel_input)
         decoder = get_voxel_decoder(z_dim)
         output = decoder(voxel_encoder(voxel_input))
-        model = Model(voxel_input, output, name='Voxel_VAE')
+        model = Model(voxel_input, output)
         model.load_weights(weights_path, by_name=True)
 
         voxel_test_data, hash = data_IO.voxelpath2matrix(voxel_data_path)

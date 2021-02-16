@@ -76,7 +76,8 @@ def get_voxel_encoder(z_dim = 200):
         sampling,
         output_shape=(z_dim,))([mu, sigma])
 
-    encoder = Model(enc_in, [mu, sigma, z], name='Voxel_Variational_Encoder')
+    #encoder = Model(enc_in, [mu, sigma, z], name='Voxel_Variational_Encoder')
+    encoder = Model(enc_in, [mu, sigma, z], name='Voxel_VAE')
     return encoder
 
 def get_voxel_decoder(z_dim = 200):
