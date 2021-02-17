@@ -1,5 +1,3 @@
-import tensorflow.keras as keras
-
 
 # ------------ Constant Variables for Models ----------------------------
 NUM_VIEWS = 6

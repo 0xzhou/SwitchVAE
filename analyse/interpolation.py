@@ -25,8 +25,8 @@ def main():
 
     # Define the decoder model
     voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
-    voxel_encoder = model.get_voxel_encoder_old(latent_dims)
-    decoder = model.get_voxel_decoder_old(latent_dims)
+    voxel_encoder = model.get_voxel_encoder(latent_dims)
+    decoder = model.get_voxel_decoder(latent_dims)
     output = decoder(voxel_encoder(voxel_input))
     test_model = Model(voxel_input, output)
     test_model.load_weights(weights_path, by_name=True)

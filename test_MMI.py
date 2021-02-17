@@ -39,19 +39,17 @@ def main(args):
         voxel_vae = Model(voxel_input, output, name='Test_Voxel_VAE')
         voxel_vae.load_weights(weights_path, by_name=True)
 
-        voxel_test_data, hash = data_IO.voxelpath2matrix(voxel_data_path)
-        reconstructions = voxel_vae.predict(voxel_test_data)
+        hash = os.listdir(voxel_data_path)
+        voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
+        voxels = data_IO.voxel_folder_list2matrix(voxel_file_list)
+        reconstructions = voxel_vae.predict(voxels)
 
     elif input_form == 'image':
         test_result_path = args.save_dir + '/test_sub_image_input'
 
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
         image_encoder = model.get_img_encoder(z_dim)
-        # image_encoder = model.get_img_encoder_old(z_dim)
-
         decoder = model.get_voxel_decoder(z_dim)
-        # decoder = model.get_voxel_decoder_old(z_dim)
-
         output = decoder(image_encoder(image_input))
         image_vae = Model(image_input, output, name='Test_Image_MVCNN_VAE')
         image_vae.load_weights(weights_path, by_name=True)

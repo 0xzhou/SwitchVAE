@@ -13,28 +13,6 @@ def read_voxel_data(model_path):
         return model.data
 
 
-def voxeldataset2matrix(voxel_dataset_path, padding=False):
-    '''
-    Transform the special dataset into arrays, in special dataset, objects are in the 'hash_id.binvox' form
-    '''
-
-    voxels_path = glob.glob(voxel_dataset_path + '/*')
-    voxels_name = os.listdir(voxel_dataset_path)
-    voxels_hash = []
-    for ele in voxels_name:
-        h1 = ele.split('.')[0]
-        voxels_hash.append(h1)
-
-    voxels = np.zeros((len(voxels_path),) + (1, 32, 32, 32), dtype=np.float32)
-    for i, name in enumerate(voxels_path):
-        model = read_voxel_data(name)
-        if padding:
-            model = nd.zoom(model, (0.75, 0.75, 0.75), mode='constant', order=0)
-            model = np.pad(model, ((4, 4), (4, 4), (4, 4)), 'constant')
-        voxels[i] = model.astype(np.float32)
-    return 3.0 * voxels - 1.0, voxels_hash
-
-
 def write_binvox_file(pred, filename):
     with open(filename, 'w') as f:
         voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xzy')
@@ -46,13 +24,11 @@ def write_binvox_file(pred, filename):
 def imagepath2matrix(image_dataset_path, single_image_shape=(137, 137, 3)):
     image_files = glob.glob(image_dataset_path + "/*/*" + "png")
     object_hash = os.listdir(image_dataset_path)
-
     images = np.zeros((24,) + single_image_shape, dtype=np.float32)
     for i, image_file in enumerate(image_files):
         image = Image.open(image_file)
         image = np.asarray(image)
         image = preprocess_img(image)
-
         images[i] = image
 
     return images
@@ -70,31 +46,6 @@ def image_folder_list2matrix(image_folder_list):
     for i, element in enumerate(image_folder_list):
         images_one_batch[i] = imagepath2matrix(element)
     return images_one_batch
-
-
-def voxelpath2matrix(voxel_dataset_path, padding=False):
-    """
-    Transform voxel path named by hash to numpy array, this function is used in test_MMI.py
-    Args:
-        voxel_file_path: like '~/Datasets/3d-r2n2-datasat/ShapeNetVox32/03001627'
-                         under this path are folders named by its hash like: '1a8bbf2994788e2743e99e0cae970928/model.binvox'
-        padding: Add 4 voxels padding at each sides
-
-    Returns: 4 dimensional numpy array
-    """
-    voxel_files = glob.glob(voxel_dataset_path + '/*')
-    voxel_hash = os.listdir(voxel_dataset_path)
-
-    num_objects = len(os.listdir(voxel_dataset_path))
-    voxels = np.zeros((num_objects,) + g.VOXEL_INPUT_SHAPE, dtype=np.float32)
-    for i, name in enumerate(voxel_files):
-        name = glob.glob(name + '/*binvox')
-        model = read_voxel_data(name[0])
-        if padding:
-            model = nd.zoom(model, (0.75, 0.75, 0.75), mode='constant', order=0)
-            model = np.pad(model, ((4, 4), (4, 4), (4, 4)), 'constant')
-        voxels[i] = model.astype(np.float32)
-    return 3.0 * voxels - 1, voxel_hash
 
 
 def voxel_folder_list2matrix(voxel_file_list, padding=False):

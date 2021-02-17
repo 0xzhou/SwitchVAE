@@ -44,51 +44,50 @@ def main(args):
     loss_type = args.loss
 
     # kl-divergence
-    kl_loss_term = custom_loss.kl_loss(mu, logvar)
+    kl_loss = custom_loss.kl_loss(mu, logvar)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(custom_loss.weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7)),
                       'float32')
 
     # Loss in betatc VAE
-    z_edit = tf.expand_dims(z, 0)
-    tc_loss_term, tc = custom_loss.tc_term(args.beta, z_edit, mu, 2 * logvar)
-    # tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
+    tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, mu, logvar)
 
-    adam = Adam(lr=learning_rate)
-    sgd = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
+
+    opt = Adam(lr=learning_rate)
+    #opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
     # Total loss
     if loss_type == 'bce':
         # total_loss = BCE_loss
         MMI.add_loss(BCE_loss)
-        MMI.compile(optimizer=adam, metrics=['accuracy'])
+        MMI.compile(optimizer=opt, metrics=['accuracy'])
     elif loss_type == 'vae':
         print('Using VAE model')
-        # total_loss = BCE_loss + kl_loss_term
+        # total_loss = BCE_loss + kl_loss
         MMI.add_loss(BCE_loss)
-        MMI.add_loss(kl_loss_term)
-        MMI.compile(optimizer=adam, metrics=['accuracy'])
+        MMI.add_loss(kl_loss)
+        MMI.compile(optimizer=opt, metrics=['accuracy'])
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        MMI.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
+        MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        # total_loss = BCE_loss + args.beta * kl_loss_term
+        # total_loss = BCE_loss + args.beta * kl_loss
         MMI.add_loss(BCE_loss)
-        MMI.add_loss(args.beta * kl_loss_term)
-        MMI.compile(optimizer=adam, metrics=['accuracy'])
+        MMI.add_loss(args.beta * kl_loss)
+        MMI.compile(optimizer=opt, metrics=['accuracy'])
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        MMI.add_metric(args.beta * kl_loss_term, name='beta_kl_loss', aggregation='mean')
+        MMI.add_metric(args.beta * kl_loss, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        # total_loss = BCE_loss + kl_loss_term + tc_loss_term
+        # total_loss = BCE_loss + kl_loss + tc_loss
         MMI.add_loss(BCE_loss)
-        MMI.add_loss(kl_loss_term)
-        MMI.add_loss(tc_loss_term)
-        MMI.compile(optimizer=adam, metrics=['accuracy'])
+        MMI.add_loss(kl_loss)
+        MMI.add_loss(tc_loss)
+        MMI.compile(optimizer=opt, metrics=['accuracy'])
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        MMI.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
-        MMI.add_metric(tc_loss_term, name='tc_loss', aggregation='mean')
+        MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
+        MMI.add_metric(tc_loss, name='tc_loss', aggregation='mean')
 
     # MMI.add_loss(total_loss)
     # MMI.compile(optimizer=adam, metrics=['accuracy'])
