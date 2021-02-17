@@ -18,7 +18,7 @@ def main(args):
     epoch_num = args.num_epochs
     batch_size = args.batch_size
     z_dim = args.latent_vector_size
-    learning_rate = args.base_learning_rate
+    learning_rate = args.initial_learning_rate
 
     # Path configuration
     voxel_dataset_path = args.binvox_dir
@@ -33,7 +33,7 @@ def main(args):
     vol_inputs = model['vol_inputs']
     outputs = model['outputs']
     mu = model['mu']
-    log_sigma = model['log_sigma']
+    logvar = model['logvar']
     z = model['z']
 
     encoder = model['MMI_encoder']
@@ -44,28 +44,28 @@ def main(args):
     loss_type = args.loss
 
     # kl-divergence
-    kl_loss_term = custom_loss.kl_loss(mu, log_sigma)
+    kl_loss_term = custom_loss.kl_loss(mu, logvar)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
-    BCE_loss = K.cast(K.mean(custom_loss.weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))),'float32')
+    BCE_loss = K.cast(custom_loss.weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7)),
+                      'float32')
 
     # Loss in betatc VAE
     z_edit = tf.expand_dims(z, 0)
-    tc_loss_term, tc = custom_loss.tc_term(args.beta, z_edit, mu, log_sigma)
+    tc_loss_term, tc = custom_loss.tc_term(args.beta, z_edit, mu, 2 * logvar)
     # tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
-
 
     adam = Adam(lr=learning_rate)
     sgd = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
     # Total loss
     if loss_type == 'bce':
-        #total_loss = BCE_loss
+        # total_loss = BCE_loss
         MMI.add_loss(BCE_loss)
         MMI.compile(optimizer=adam, metrics=['accuracy'])
     elif loss_type == 'vae':
         print('Using VAE model')
-        #total_loss = BCE_loss + kl_loss_term
+        # total_loss = BCE_loss + kl_loss_term
         MMI.add_loss(BCE_loss)
         MMI.add_loss(kl_loss_term)
         MMI.compile(optimizer=adam, metrics=['accuracy'])
@@ -73,7 +73,7 @@ def main(args):
         MMI.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        #total_loss = BCE_loss + args.beta * kl_loss_term
+        # total_loss = BCE_loss + args.beta * kl_loss_term
         MMI.add_loss(BCE_loss)
         MMI.add_loss(args.beta * kl_loss_term)
         MMI.compile(optimizer=adam, metrics=['accuracy'])
@@ -81,21 +81,22 @@ def main(args):
         MMI.add_metric(args.beta * kl_loss_term, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        #total_loss = BCE_loss + kl_loss_term + tc_loss_term
+        # total_loss = BCE_loss + kl_loss_term + tc_loss_term
         MMI.add_loss(BCE_loss)
         MMI.add_loss(kl_loss_term)
         MMI.add_loss(tc_loss_term)
-        MMI.compile(optimizer = adam, metrics = ['accuracy'])
+        MMI.compile(optimizer=adam, metrics=['accuracy'])
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
         MMI.add_metric(tc_loss_term, name='tc_loss', aggregation='mean')
 
-    #MMI.add_loss(total_loss)
-    #MMI.compile(optimizer=adam, metrics=['accuracy'])
+    # MMI.add_loss(total_loss)
+    # MMI.compile(optimizer=adam, metrics=['accuracy'])
 
     plot_model(MMI, to_file=os.path.join(train_data_path, 'MMI.pdf'), show_shapes=True)
     plot_model(encoder, to_file=os.path.join(train_data_path, 'MMI-encoder.pdf'), show_shapes=True)
     plot_model(decoder, to_file=os.path.join(train_data_path, 'MMI-decoder.pdf'), show_shapes=True)
+    save_train.save_config_pro(save_path=train_data_path)
 
     def generate_MMI_batch_data(voxel_path, image_path, batch_size):
 
@@ -136,9 +137,7 @@ def main(args):
         callbacks=train_callbacks
     )
 
-    save_train.save_config_pro(save_path=train_data_path)
-    MMI.save_weights(os.path.join(train_data_path, 'end_weights.h5'))
-
+    MMI.save_weights(os.path.join(train_data_path, 'end_weights_{epoch:03d}_{loss:.4f}.h5'))
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))

@@ -10,12 +10,12 @@ from tensorflow.keras import backend as K
 from utils import globals as g
 
 def sampling(args):
-    mu, log_sigma = args
+    mu, logvar = args
     batch = K.shape(mu)[0]
     dim = K.int_shape(mu)[1]
     epsilon = K.random_normal(shape = (batch, dim))
 
-    return mu + K.exp(log_sigma) * epsilon
+    return mu + K.exp(logvar / 2.0) * epsilon
 
 def get_voxel_encoder(z_dim=200):
     enc_in = Input(shape=g.VOXEL_INPUT_SHAPE, name='VoxEncoder_inputs')
@@ -42,12 +42,12 @@ def get_voxel_encoder(z_dim=200):
     mu = BatchNormalization(name='VoxEncoder_bn_mu')(Dense(units=z_dim, kernel_initializer='glorot_normal',
                                     activation=None, name='VoxEncoder_mu')(enc_fc1))
 
-    log_sigma = BatchNormalization(name='VoxEncoder_bn_log_sigma')(Dense(units=z_dim, kernel_initializer='glorot_normal',
+    logvar = BatchNormalization(name='VoxEncoder_bn_log_sigma')(Dense(units=z_dim, kernel_initializer='glorot_normal',
                                            activation=None, name='VoxEncoder_log_sigma')(enc_fc1))
 
-    z = Lambda(sampling, output_shape=(z_dim,), name='VoxEncoder_latent_vector')([mu, log_sigma])
+    z = Lambda(sampling, output_shape=(z_dim,), name='VoxEncoder_latent_vector')([mu, logvar])
 
-    encoder = Model(enc_in, [mu, log_sigma, z], name='Voxel_Encoder')
+    encoder = Model(enc_in, [mu, logvar, z], name='Voxel_Encoder')
     return encoder
 
 
@@ -167,15 +167,15 @@ def get_img_encoder(z_dim=200):
     pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
 
     # cnn2 from here a full-connected layer
-    fc6 = Dense(units=4096, activation='relu', kernel_regularizer=g.l2_reg, name='MVCNN_fcc6')(pool5_vp)
+    fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
 
     # a dropout  layer, when call function evaluate and predict,
     # dropout layer will disabled automatically
     dropout6 = Dropout(0.6, name='MVCNN_dropout6')(fc6)
 
-    fc7 = Dense(4096, 'relu', kernel_regularizer=g.l2_reg, name='MVCNN_fcc7')(dropout6)
+    fc7 = Dense(4096, 'relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc7')(dropout6)
     dropout7 = Dropout(0.6, name='MVCNN_dropout7')(fc7)
-    fc8 = Dense(343, kernel_regularizer=g.l2_reg, name='MVCNN_fcc8')(dropout7)
+    fc8 = Dense(343, kernel_regularizer=l2(0.004), name='MVCNN_fcc8')(dropout7)
 
     mu = BatchNormalization(name='MVCNN_bn_mu')(Dense(units=z_dim, kernel_initializer='glorot_normal',
                                     activation=None, name='MVCNN_mu')(fc8))

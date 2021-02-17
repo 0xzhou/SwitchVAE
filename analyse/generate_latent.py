@@ -16,11 +16,11 @@ ConFig.gpu_options.allow_growth = True
 session = tf.Session(config=ConFig)
 
 
-def latent2dict(hash, mu, log_sigma, z):
+def latent2dict(hash, mu, logvar, z):
     output = {}
     for i in range(len(hash)):
         output[hash[i] + '_mu'] = mu[i]
-        output[hash[i] + '_sigma'] = log_sigma[i]
+        output[hash[i] + '_logvar'] = logvar[i]
         output[hash[i] + '_z'] = z[i]
     return output
 
@@ -57,12 +57,12 @@ def main(args):
         voxel_data, hash = data_IO.voxelpath2matrix(voxel_data_path)
 
         # Get latent vector information
-        mu, log_sigma, z = voxel_encoder.predict(voxel_data)
-        epsilon = (z - mu) / np.exp(log_sigma)
+        mu, logvar, z = voxel_encoder.predict(voxel_data)
+        epsilon = (z - mu) / np.exp(logvar)
         print("The epsilon in sampling layer is", epsilon)
 
         # record latent vectors in dictionary and save it in .pkl form
-        latent_dict = latent2dict(hash, mu, log_sigma, z)
+        latent_dict = latent2dict(hash, mu, logvar, z)
         latent_dict_save_path = os.path.join(latent_save_path, 'latent_dict.pkl')
         save_latent_dict = open(latent_dict_save_path, 'wb')
         pickle.dump(latent_dict, save_latent_dict)
@@ -95,12 +95,12 @@ def main(args):
             images[i] = data_IO.imagepath2matrix(image_path)
 
         # Get latent vector information
-        mu, log_sigma, z = image_encoder.predict(images)
-        epsilon = (z - mu) / np.exp(log_sigma)
+        mu, logvar, z = image_encoder.predict(images)
+        epsilon = (z - mu) / np.exp(logvar)
         print("The epsilon in sampling layer is", epsilon)
 
         # record latent vectors in dictionary and save it in .pkl form
-        latent_dict = latent2dict(hash, mu, log_sigma, z)
+        latent_dict = latent2dict(hash, mu, logvar, z)
         latent_dict_save_path = os.path.join(latent_save_path, 'latent_dict.pkl')
         save_latent_dict = open(latent_dict_save_path, 'wb')
         pickle.dump(latent_dict, save_latent_dict)

@@ -10,7 +10,7 @@ def switch(args):
     img_output, vol_output = args[0], args[1]
     switch = random.random()
     if switch > g.SWITCH_PROBABILITY:
-        return [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*img_output[2]]
+        return [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*vol_output[2]]
         #return [img_output + 0 * vol_output]
     else:
         return [vol_output[0]+0*img_output[0], vol_output[1]+0*img_output[1], vol_output[2]+0*img_output[2]]
@@ -29,7 +29,7 @@ def get_MMI(z_dim = 200, train_mode = None):
 
     # Method1: Use "Switch" to train the latent vectors
     if train_mode == 'switch':
-        mu, log_sigma, z = Lambda(switch, output_shape=(z_dim,), name= 'Switch_Layer')([img_encoder_output, vol_encoder_output])
+        mu, logvar, z = Lambda(switch, output_shape=(z_dim,), name= 'Switch_Layer')([img_encoder_output, vol_encoder_output])
 
     # Method2: Add latent vectors from different input with weights to generate the latent vectors
     # elif train_mode == 'weighted_add':
@@ -45,7 +45,7 @@ def get_MMI(z_dim = 200, train_mode = None):
     #     z = concatenate([z_img, z_vol])
     #     z = Dense(units=z_dim, activation= 'tanh', name='FCC_Layer')(z)
 
-    MMI_encoder = Model([img_input, vol_input], [mu, log_sigma, z])
+    MMI_encoder = Model([img_input, vol_input], [mu, logvar, z])
     MMI_decoder = get_voxel_decoder(z_dim)
     decoded_vol = MMI_decoder(z)
 
@@ -55,12 +55,12 @@ def get_MMI(z_dim = 200, train_mode = None):
              'img_inputs': img_input,
              'mu_img': img_encoder_output[0],
              'mu_vol': vol_encoder_output[0],
-             'sigma_img': img_encoder_output[1],
-             'sigma_vol': vol_encoder_output[1],
+             'logvar_img': img_encoder_output[1],
+             'logvar_vol': vol_encoder_output[1],
              'z_img': img_encoder_output[2],
              'z_vol': vol_encoder_output[2],
              'mu':mu,
-             'log_sigma': log_sigma,
+             'logvar': logvar,
              'z': z,
              'image_encoder': img_encoder,
              'voxel_encoder': vol_encoder,

@@ -49,8 +49,8 @@ def parse_train_arguments(argv):
     parser.add_argument('--optimizer', type=str, choices=['ADAGRAD', 'ADADELTA', 'ADAM', 'RMSPROP', 'SGD'],
                         help='The optimization algorithm to use', default='ADAM')
 
-    parser.add_argument('--base_learning_rate', type=float,
-                        help='The base learning rate for the model.',
+    parser.add_argument('--initial_learning_rate', type=float,
+                        help='The initial learning rate for the training.',
                         default=0.002)
 
     parser.add_argument('--num_epochs', type=int,

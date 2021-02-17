@@ -31,7 +31,7 @@ def main(args):
     epoch_num = args.num_epochs
     batch_size = args.batch_size
     z_dim = args.latent_vector_size
-    learning_rate = args.base_learning_rate
+    learning_rate = args.initial_learning_rate
 
     # Path configuration
     loss_type = args.loss
@@ -46,23 +46,26 @@ def main(args):
     inputs = model['inputs']
     outputs = model['outputs']
     mu = model['mu']
-    log_sigma = model['log_sigma']
+    print("The shape of mu", mu.shape)
+    logvar = model['logvar']
+    print("The shape of logvar", logvar.shape)
     z = model['z']
+    print("The shape of z", z.shape)
 
     encoder = model['encoder']
     decoder = model['decoder']
     vae = model['vae']
 
     # kl-divergence
-    kl_loss_term = custom_loss.kl_loss(mu, log_sigma)
+    kl_loss_term = custom_loss.kl_loss(mu, logvar)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(K.mean(custom_loss.weighted_binary_crossentropy(inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))), 'float32')
 
     # Loss in betatc VAE
-    z_edit = tf.expand_dims(z,0)
-    tc_loss_term , tc = custom_loss.tc_term(args.beta, z_edit, mu, log_sigma)
-    #tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
+    #z_edit = tf.expand_dims(z,0)
+    tc_loss_term , tc = custom_loss.tc_term(args.beta, z, mu, logvar)
+    tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
 
     adam = Adam(lr=learning_rate)
 

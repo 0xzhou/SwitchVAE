@@ -5,14 +5,17 @@ from tensorflow.keras import backend as K
 
 def weighted_binary_crossentropy(target, output):
     loss = -(98.0 * target * K.log(output) + 2.0 * (1.0 - target) * K.log(1.0 - output)) / 100.0
+    loss = K.mean(K.sum(loss, axis=(-3, -2, -1),keepdims=True))
     return loss
 
 
-def kl_loss(z_mean, z_log_sigma):
-    return - 0.5 * K.mean(1 + 2 * z_log_sigma - K.square(z_mean) - K.exp(2 * z_log_sigma))
+def kl_loss(z_mean, z_logvar):
+    loss = -0.5 * (1 + z_logvar - K.square(z_mean) - K.exp(z_logvar))
+    loss = K.mean(K.sum(loss, axis=1,keepdims=True))
+    return loss
 
 
-def tc_term(beta, z_sampled, z_mean, z_log_squared_scale):
+def tc_term(beta, z_sampled, z_mean, z_logvar):
     """
     From:
     Locatello, F. et al.
@@ -26,22 +29,29 @@ def tc_term(beta, z_sampled, z_mean, z_log_squared_scale):
     :param args: Shared arguments
     :param z_sampled: Samples from latent space
     :param z_mean: Means of z
-    :param z_log_squared_scale: Logvars of z
+    :param z_logvar: Logvars of z
     :return: Total correlation penalty
     """
-    tc = total_correlation(z_sampled, z_mean, z_log_squared_scale, 'normal')
+    tc = total_correlation(z_sampled, z_mean, z_logvar, 'normal')
     return (beta - 1.) * tc, tc
 
 
-def gaussian_log_density(samples, mean, log_squared_scale):
+def gaussian_log_density(samples, mean, logvar):
+    print("The shape of samples:", samples.shape)
+    print("The shape of mean:", mean.shape)
+    print("The shape of mean:", logvar.shape)
     pi = tf.constant(np.pi)
     normalization = tf.math.log(2. * pi)
-    inv_sigma = tf.math.exp(-log_squared_scale)
+    inv_sigma = tf.math.exp(-logvar)
+    print("The shape of inv_siama:", inv_sigma.shape)
     tmp = (samples - mean)
-    return -0.5 * (tmp * tmp * inv_sigma + log_squared_scale + normalization)
+    print("The shape of temp:", tmp.shape)
+    result = -0.5 * (tmp * tmp * inv_sigma + logvar + normalization)
+    print("The shape of result", result.shape)
+    return -0.5 * (tmp * tmp * inv_sigma + logvar + normalization)
 
 
-def total_correlation(z, z_mean, z_log_squared_scale, prior):
+def total_correlation(z, z_mean, z_logvar, prior):
     """Estimate of total correlation on a batch.
     We need to compute the expectation over a batch of: E_j [log(q(z(x_j))) -
     log(prod_l q(z(x_j)_l))]. We ignore the constants as they do not matter
@@ -50,7 +60,7 @@ def total_correlation(z, z_mean, z_log_squared_scale, prior):
     Args:
       z: [batch_size, num_latents]-tensor with sampled representation.
       z_mean: [batch_size, num_latents]-tensor with mean of the encoder.
-      z_log_squared_scale: [batch_size, num_latents]-tensor with log variance of the encoder.
+      z_logvar: [batch_size, num_latents]-tensor with log variance of the encoder.
     Returns:
       Total correlation estimated on a batch.
     """
@@ -60,7 +70,7 @@ def total_correlation(z, z_mean, z_log_squared_scale, prior):
     if prior.lower() == "normal":
         log_qz_prob = gaussian_log_density(
             tf.expand_dims(z, 1), tf.expand_dims(z_mean, 0),
-            tf.expand_dims(z_log_squared_scale, 0))
+            tf.expand_dims(z_logvar, 0))
     # if prior.lower() == "laplace":
     #     log_qz_prob = laplace_log_density(
     #         tf.expand_dims(z, 1), tf.expand_dims(z_mean, 0),

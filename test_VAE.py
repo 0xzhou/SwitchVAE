@@ -22,12 +22,12 @@ def main(args):
     save_the_ori = args.save_ori
     test_data_path = args.test_data_dir
 
-    model = get_model(z_dim)
+    model = get_voxel_VAE(z_dim)
 
     inputs = model['inputs']
     outputs = model['outputs']
     mu = model['mu']
-    sigma = model['sigma']
+    logvar = model['logvar']
     z = model['z']
 
     encoder = model['encoder']

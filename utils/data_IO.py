@@ -113,7 +113,7 @@ def voxel_folder_list2matrix(voxel_file_list, padding=False):
         model = read_voxel_data(model[0])
         voxel_one_batch[i] = model.astype(np.float32)
 
-    voxel_one_batch = 3.0 * voxel_one_batch - 1.0
+    #voxel_one_batch = 3.0 * voxel_one_batch - 1.0
     return voxel_one_batch
 
 
