@@ -22,29 +22,29 @@ def get_voxel_VAE(z_dim = 200):
     enc_in = Input(shape=g.VOXEL_INPUT_SHAPE, name='VoxEncoder_inputs')
 
     enc_conv1 = BatchNormalization(name='VoxEncoder_bn1')(Conv3D(filters=8, kernel_size=(3, 3, 3), strides=(1, 1, 1),
-                                                                 padding='valid', kernel_initializer='glorot_normal',
-                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv1')(enc_in))
+                                            padding='valid', kernel_initializer='glorot_normal', activation='elu',
+                                            data_format='channels_first', name='VoxEncoder_conv1')(enc_in))
 
     enc_conv2 = BatchNormalization(name='VoxEncoder_bn2')(Conv3D(filters=16, kernel_size=(3, 3, 3), strides=(2, 2, 2),
-                                                                 padding='same', kernel_initializer='glorot_normal',
-                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv2')(enc_conv1))
+                                            padding='same', kernel_initializer='glorot_normal', activation='elu',
+                                            data_format='channels_first', name='VoxEncoder_conv2')(enc_conv1))
 
     enc_conv3 = BatchNormalization(name='VoxEncoder_bn3')(Conv3D(filters=32, kernel_size=(3, 3, 3), strides=(1, 1, 1),
-                                                                 padding='valid', kernel_initializer='glorot_normal',
-                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv3')(enc_conv2))
+                                            padding='valid', kernel_initializer='glorot_normal', activation='elu',
+                                            data_format='channels_first', name='VoxEncoder_conv3')(enc_conv2))
 
     enc_conv4 = BatchNormalization(name='VoxEncoder_bn4')(Conv3D(filters=64, kernel_size=(3, 3, 3), strides=(2, 2, 2),
-                                                                 padding='same', kernel_initializer='glorot_normal',
-                                                                 activation='elu',data_format='channels_first', name='VoxEncoder_conv4')(enc_conv3))
+                                            padding='same', kernel_initializer='glorot_normal', activation='elu',
+                                            data_format='channels_first', name='VoxEncoder_conv4')(enc_conv3))
 
-    enc_fc1 = BatchNormalization(name='VoxEncoder_bn4')(Dense(units=343, kernel_initializer='glorot_normal',
-                                                              activation='elu', name='VoxEncoder_fcc1')(Flatten()(enc_conv4)))
+    enc_fc1 = BatchNormalization(name='VoxEncoder_bn_fc1')(Dense(units=343, kernel_initializer='glorot_normal',
+                                         activation='elu', name='VoxEncoder_fcc1')(Flatten()(enc_conv4)))
 
     mu = BatchNormalization(name='VoxEncoder_bn_mu')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                                         activation=None, name='VoxEncoder_mu')(enc_fc1))
+                                    activation=None, name='VoxEncoder_mu')(enc_fc1))
 
     log_sigma = BatchNormalization(name='VoxEncoder_bn_log_sigma')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                                                activation=None, name='VoxEncoder_log_sigma')(enc_fc1))
+                                           activation=None, name='VoxEncoder_log_sigma')(enc_fc1))
 
     z = Lambda(sampling, output_shape=(z_dim,), name='VoxEncoder_latent_vector')([mu, log_sigma])
 
@@ -95,7 +95,7 @@ def get_voxel_VAE(z_dim = 200):
     return {'inputs': enc_in, 
             'outputs': dec_conv5,
             'mu': mu,
-            'sigma': log_sigma,
+            'log_sigma': log_sigma,
             'z': z,
             'encoder': encoder,
             'decoder': decoder,

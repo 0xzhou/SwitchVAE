@@ -4,7 +4,7 @@ import tensorflow.keras as keras
 
 from tensorflow.keras.utils import plot_model
 from tensorflow.keras.activations import sigmoid
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras import backend as K
 
@@ -20,13 +20,6 @@ ConFig=tf.ConfigProto()
 ConFig.gpu_options.allow_growth=True
 session=tf.Session(config=ConFig)
 
-def weighted_binary_crossentropy(target, output):
-    loss = -(98.0 * target * K.log(output) + 2.0 * (1.0 - target) * K.log(1.0 - output)) / 100.0
-    return loss
-
-def kl_loss(z_mean,z_log_sigma_square):
-    return - 0.5 * K.mean(1 + z_mean - K.square(z_mean) - K.exp(z_log_sigma_square))
-
 def learning_rate_scheduler(epoch, lr):
     if epoch >= 1:
         lr = learning_rate_2
@@ -38,6 +31,7 @@ def main(args):
     epoch_num = args.num_epochs
     batch_size = args.batch_size
     z_dim = args.latent_vector_size
+    learning_rate = args.base_learning_rate
 
     # Path configuration
     loss_type = args.loss
@@ -46,14 +40,13 @@ def main(args):
     train_data_path = save_train.create_log_dir(save_path)
 
     # Model selection
-    model = get_model(z_dim)
-    print("Using the latent space size is", args)
+    model = get_voxel_VAE(z_dim)
 
     # Get model structures
     inputs = model['inputs']
     outputs = model['outputs']
     mu = model['mu']
-    sigma = model['sigma']
+    log_sigma = model['log_sigma']
     z = model['z']
 
     encoder = model['encoder']
@@ -61,47 +54,67 @@ def main(args):
     vae = model['vae']
 
     # kl-divergence
-    kl_loss_term = kl_loss(mu, sigma)
+    kl_loss_term = custom_loss.kl_loss(mu, log_sigma)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
-    BCE_loss = K.cast(K.mean(weighted_binary_crossentropy(inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))), 'float32')
+    BCE_loss = K.cast(K.mean(custom_loss.weighted_binary_crossentropy(inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))), 'float32')
 
     # Loss in betatc VAE
     z_edit = tf.expand_dims(z,0)
-    tc_loss_term , tc = custom_loss.tc_term(args.beta, z_edit, mu, sigma)
+    tc_loss_term , tc = custom_loss.tc_term(args.beta, z_edit, mu, log_sigma)
     #tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
+
+    adam = Adam(lr=learning_rate)
 
     # Total loss
     if loss_type == 'bce':
         print('Using VAE model with only bce_loss')
-        total_loss = BCE_loss
+        vae.add_loss(BCE_loss)
+        vae.compile(optimizer=adam, metrics=['accuracy'])
     elif loss_type == 'vae':
         print('Using VAE model')
-        total_loss = BCE_loss + kl_loss_term
+        #total_loss = BCE_loss + kl_loss_term
+        vae.add_loss(BCE_loss)
+        vae.add_loss(kl_loss_term)
+        vae.compile(optimizer=adam, metrics=['accuracy'])
+        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        vae.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        total_loss = BCE_loss + args.beta * kl_loss_term
+        #total_loss = BCE_loss + args.beta * kl_loss_term
+        vae.add_loss(BCE_loss)
+        vae.add_loss(args.beta * kl_loss_term)
+        vae.compile(optimizer=adam, metrics=['accuracy'])
+        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        vae.add_metric(args.beta * kl_loss_term, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        total_loss = BCE_loss + kl_loss_term + tc_loss_term
+        #total_loss = BCE_loss + kl_loss_term + tc_loss_term
+        vae.add_loss(BCE_loss)
+        vae.add_loss(kl_loss_term)
+        vae.add_loss(tc_loss_term)
+        vae.compile(optimizer = adam, metrics = ['accuracy'])
+        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        vae.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
+        vae.add_metric(tc_loss_term, name='tc_loss', aggregation='mean')
 
-    vae.add_loss(total_loss)
-    sgd = SGD(lr = learning_rate_1, momentum = momentum, nesterov = True)
-    vae.compile(optimizer = sgd, metrics = ['accuracy'])
+    #vae.add_loss(total_loss)
 
     plot_model(vae, to_file = 'vae.pdf', show_shapes = True)
     plot_model(encoder, to_file = os.path.join(train_data_path,'vae_encoder.pdf'), show_shapes = True)
     plot_model(decoder, to_file = os.path.join(train_data_path,'vae_decoder.pdf'), show_shapes = True)
 
-    data_train, hash = data_IO.voxeldataset2matrix(voxel_dataset_path)
+    hash = os.listdir(voxel_dataset_path)
+    voxel_folder_list = [os.path.join(voxel_dataset_path,id) for id in hash]
+    data_train = data_IO.voxel_folder_list2matrix(voxel_folder_list)
 
-    train_callbacks= [
-        LearningRateScheduler(learning_rate_scheduler),
+    train_callbacks = [
+        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=0.000001, cooldown=1),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
-        tf.keras.callbacks.CSVLogger(filename=train_data_path+'/training_log'),
+        tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log'),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(train_data_path,'weights_{epoch:03d}_{val_loss:.4f}.h5'),
-            save_weights_only=False,
+            filepath=os.path.join(train_data_path, 'weights_{epoch:03d}_{loss:.4f}.h5'),
+            save_weights_only=True,
             period=50
         )
     ]
@@ -114,8 +127,8 @@ def main(args):
         callbacks=train_callbacks
     )
 
-    save_train.save_train_config(__file__, './run_training.sh', './VAE.py', './utils/arg_parser.py','./run_testing.sh', save_path= train_data_path)
-    #vae.save_weights(os.path.join(train_data_path,'weights.h5'))
+    save_train.save_config_pro(save_path=train_data_path)
+    vae.save_weights(os.path.join(train_data_path,'end_weights.h5'))
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))

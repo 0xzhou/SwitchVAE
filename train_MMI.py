@@ -54,25 +54,44 @@ def main(args):
     tc_loss_term, tc = custom_loss.tc_term(args.beta, z_edit, mu, log_sigma)
     # tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
 
-    # Total loss
-    if loss_type == 'bce':
-        total_loss = BCE_loss
-    elif loss_type == 'vae':
-        print('Using VAE model')
-        total_loss = BCE_loss + kl_loss_term
-    elif loss_type == 'bvae':
-        print('Using beta-VAE model')
-        total_loss = BCE_loss + args.beta * kl_loss_term
-    elif loss_type == 'btcvae':
-        print('Using beta-tc-VAE model')
-        total_loss = BCE_loss + kl_loss_term + tc_loss_term
-
-    MMI.add_loss(total_loss)
 
     adam = Adam(lr=learning_rate)
     sgd = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
-    MMI.compile(optimizer=adam, metrics=['accuracy'])
+    # Total loss
+    if loss_type == 'bce':
+        #total_loss = BCE_loss
+        MMI.add_loss(BCE_loss)
+        MMI.compile(optimizer=adam, metrics=['accuracy'])
+    elif loss_type == 'vae':
+        print('Using VAE model')
+        #total_loss = BCE_loss + kl_loss_term
+        MMI.add_loss(BCE_loss)
+        MMI.add_loss(kl_loss_term)
+        MMI.compile(optimizer=adam, metrics=['accuracy'])
+        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        MMI.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
+    elif loss_type == 'bvae':
+        print('Using beta-VAE model')
+        #total_loss = BCE_loss + args.beta * kl_loss_term
+        MMI.add_loss(BCE_loss)
+        MMI.add_loss(args.beta * kl_loss_term)
+        MMI.compile(optimizer=adam, metrics=['accuracy'])
+        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        MMI.add_metric(args.beta * kl_loss_term, name='beta_kl_loss', aggregation='mean')
+    elif loss_type == 'btcvae':
+        print('Using beta-tc-VAE model')
+        #total_loss = BCE_loss + kl_loss_term + tc_loss_term
+        MMI.add_loss(BCE_loss)
+        MMI.add_loss(kl_loss_term)
+        MMI.add_loss(tc_loss_term)
+        MMI.compile(optimizer = adam, metrics = ['accuracy'])
+        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        MMI.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
+        MMI.add_metric(tc_loss_term, name='tc_loss', aggregation='mean')
+
+    #MMI.add_loss(total_loss)
+    #MMI.compile(optimizer=adam, metrics=['accuracy'])
 
     plot_model(MMI, to_file=os.path.join(train_data_path, 'MMI.pdf'), show_shapes=True)
     plot_model(encoder, to_file=os.path.join(train_data_path, 'MMI-encoder.pdf'), show_shapes=True)
