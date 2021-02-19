@@ -32,11 +32,13 @@ def main(args):
     # Get model structures
     vol_inputs = model['vol_inputs']
     outputs = model['outputs']
-    mu = model['mu']
-    logvar = model['logvar']
+    z_mean = model['z_mean']
+    z_logvar = model['z_logvar']
     z = model['z']
 
     encoder = model['MMI_encoder']
+    image_encoder = model['image_encoder']
+    voxel_encoder = model['voxel_encoder']
     decoder = model['MMI_decoder']
     MMI = model['MMI']
 
@@ -44,18 +46,17 @@ def main(args):
     loss_type = args.loss
 
     # kl-divergence
-    kl_loss = custom_loss.kl_loss(mu, logvar)
+    kl_loss = custom_loss.kl_loss(z_mean, z_logvar)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(custom_loss.weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7)),
                       'float32')
 
     # Loss in betatc VAE
-    tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, mu, logvar)
+    tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, z_mean, z_logvar)
 
-
-    opt = Adam(lr=learning_rate)
-    #opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
+    #opt = Adam(lr=learning_rate)
+    opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
     # Total loss
     if loss_type == 'bce':
@@ -95,27 +96,30 @@ def main(args):
     plot_model(MMI, to_file=os.path.join(train_data_path, 'MMI.pdf'), show_shapes=True)
     plot_model(encoder, to_file=os.path.join(train_data_path, 'MMI-encoder.pdf'), show_shapes=True)
     plot_model(decoder, to_file=os.path.join(train_data_path, 'MMI-decoder.pdf'), show_shapes=True)
+    plot_model(image_encoder, to_file=os.path.join(train_data_path, 'image-encoder.pdf'), show_shapes=True)
+    plot_model(voxel_encoder, to_file=os.path.join(train_data_path, 'voxel-encoder.pdf'), show_shapes=True)
     save_train.save_config_pro(save_path=train_data_path)
 
     def generate_MMI_batch_data(voxel_path, image_path, batch_size):
 
         number_of_elements = len(os.listdir(voxel_path))
         hash_id = os.listdir(voxel_path)
+        random.shuffle(hash_id)
 
         voxel_file_path = [os.path.join(voxel_path, id) for id in hash_id]
         image_file_path = [os.path.join(image_path, id) for id in hash_id]
 
         while 1:
-            for start_idx in range(number_of_elements - batch_size):
-                excerpt = slice(start_idx, start_idx + batch_size)
+            for start_idx in range(number_of_elements // batch_size):
+                excerpt = slice(start_idx*batch_size, (start_idx+1)*batch_size)
 
                 image_one_batch_files = image_file_path[excerpt]
-                image_one_batch = data_IO.image_folder_list2matrix(image_one_batch_files)
+                image_one_batch = data_IO.imagePathList2matrix(image_one_batch_files)
 
                 voxel_one_batch_files = voxel_file_path[excerpt]
-                voxel_one_batch = data_IO.voxel_folder_list2matrix(voxel_one_batch_files)
+                voxel_one_batch = data_IO.voxelPathList2matrix(voxel_one_batch_files)
 
-                yield [image_one_batch, voxel_one_batch], vol_inputs[excerpt]
+                yield ([image_one_batch, voxel_one_batch], )
 
     train_callbacks = [
         tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=0.000001, cooldown=1),
@@ -131,7 +135,7 @@ def main(args):
     MMI.fit_generator(
         generate_MMI_batch_data(voxel_dataset_path, image_dataset_path, batch_size),
         steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
-        # steps_per_epoch= 100,
+        #steps_per_epoch= 100,
         epochs=epoch_num,
         callbacks=train_callbacks
     )

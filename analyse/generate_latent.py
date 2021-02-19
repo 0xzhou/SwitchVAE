@@ -41,11 +41,8 @@ def main(args):
         os.makedirs(latent_save_path)
 
         voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
-        voxel_encoder = model.get_voxel_encoder_old(z_dim)
-        #voxel_encoder = model.get_voxel_encoder(z_dim)
-
-        decoder = model.get_voxel_decoder_old(z_dim)
-        #decoder = model.get_voxel_decoder(z_dim)
+        voxel_encoder = model.get_voxel_encoder(z_dim)
+        decoder = model.get_voxel_decoder(z_dim)
         output = decoder(voxel_encoder(voxel_input))
 
         test_model = Model(voxel_input, output)
@@ -54,21 +51,23 @@ def main(args):
         voxel_encoder.load_weights(weights_path, by_name=True)
         decoder.load_weights(weights_path, by_name=True)
 
-        voxel_data, hash = data_IO.voxelpath2matrix(voxel_data_path)
+        hash = os.listdir(voxel_data_path)
+        voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
+        voxels = data_IO.voxelPathList2matrix(voxel_file_list)
 
         # Get latent vector information
-        mu, logvar, z = voxel_encoder.predict(voxel_data)
-        epsilon = (z - mu) / np.exp(logvar)
+        z_mean, z_logvar, z = voxel_encoder.predict(voxels)
+        epsilon = (z - z_mean) / np.exp(z_logvar)
         print("The epsilon in sampling layer is", epsilon)
 
         # record latent vectors in dictionary and save it in .pkl form
-        latent_dict = latent2dict(hash, mu, logvar, z)
+        latent_dict = latent2dict(hash, z_mean, z_logvar, z)
         latent_dict_save_path = os.path.join(latent_save_path, 'latent_dict.pkl')
         save_latent_dict = open(latent_dict_save_path, 'wb')
         pickle.dump(latent_dict, save_latent_dict)
         save_latent_dict.close()
 
-        reconstructions = test_model.predict(voxel_data)
+        reconstructions = test_model.predict(voxels)
 
     elif input_form == 'image':
         reconstructions_save_path = args.save_dir + '/analyse_image_input'
@@ -77,30 +76,23 @@ def main(args):
 
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
         image_encoder = model.get_img_encoder(z_dim)
-        #image_encoder = model.get_voxel_encoder_old(z_dim)
 
         decoder = model.get_voxel_decoder_old(z_dim)
-        #decoder = model.get_voxel_decoder_old(z_dim)
         output = decoder(image_encoder(image_input))
         test_model = Model(image_input, output)
         test_model.load_weights(weights_path, by_name=True)
 
-        num_objects = len(os.listdir(image_data_path))
-        images = np.zeros((num_objects,) + g.VIEWS_IMAGE_SHAPE, dtype=np.float32)
-        object_files = os.listdir(image_data_path)
-        hash = object_files
-
-        for i, object in enumerate(object_files):
-            image_path = os.path.join(image_data_path, object)
-            images[i] = data_IO.imagepath2matrix(image_path)
+        hash = os.listdir(image_data_path)
+        image_file_list = [os.path.join(image_data_path, id) for id in hash]
+        images = data_IO.imagePathList2matrix(image_file_list, train=False)
 
         # Get latent vector information
-        mu, logvar, z = image_encoder.predict(images)
-        epsilon = (z - mu) / np.exp(logvar)
+        z_mean, z_logvar, z = image_encoder.predict(images)
+        epsilon = (z - z_mean) / np.exp(z_logvar)
         print("The epsilon in sampling layer is", epsilon)
 
         # record latent vectors in dictionary and save it in .pkl form
-        latent_dict = latent2dict(hash, mu, logvar, z)
+        latent_dict = latent2dict(hash, z_mean, z_logvar, z)
         latent_dict_save_path = os.path.join(latent_save_path, 'latent_dict.pkl')
         save_latent_dict = open(latent_dict_save_path, 'wb')
         pickle.dump(latent_dict, save_latent_dict)

@@ -11,9 +11,11 @@ def switch(args):
     switch = random.random()
     if switch > g.SWITCH_PROBABILITY:
         return [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*vol_output[2]]
+        print("Use image latent vector")
         #return [img_output + 0 * vol_output]
     else:
         return [vol_output[0]+0*img_output[0], vol_output[1]+0*img_output[1], vol_output[2]+0*img_output[2]]
+        print("Use voxel latent vector")
         #return  [vol_output + 0 * img_output]
 
 def get_MMI(z_dim = 200, train_mode = None):
@@ -29,23 +31,23 @@ def get_MMI(z_dim = 200, train_mode = None):
 
     # Method1: Use "Switch" to train the latent vectors
     if train_mode == 'switch':
-        mu, logvar, z = Lambda(switch, output_shape=(z_dim,), name= 'Switch_Layer')([img_encoder_output, vol_encoder_output])
+        z_mean, z_logvar, z = Lambda(switch, output_shape=(z_dim,), name= 'Switch_Layer')([img_encoder_output, vol_encoder_output])
 
     # Method2: Add latent vectors from different input with weights to generate the latent vectors
-    # elif train_mode == 'weighted_add':
-    #     weight_op_img = Lambda(lambda x: x * g.IMG_WEIGHT, name='Imgae_Weighted_Layer')
-    #     weight_op_vol = Lambda(lambda x: x * g.VOL_WEIGHT, name='Voxel_Weighted_Layer')
-    #
-    #     weighted_z_img = weight_op_img(z_img)
-    #     weighted_z_vol = weight_op_vol(z_vol)
-    #     z = Add(name='Weighted_Add_Layer')([weighted_z_img, weighted_z_vol])
+    elif train_mode == 'weighted_add':
+        weight_op_img = Lambda(lambda x: x * g.IMG_WEIGHT, name='Imgae_Weighted_Layer')
+        weight_op_vol = Lambda(lambda x: x * g.VOL_WEIGHT, name='Voxel_Weighted_Layer')
+
+        weighted_z_img = weight_op_img(img_encoder_output[2])
+        weighted_z_vol = weight_op_vol(vol_encoder_output[2])
+        z = Add(name='Weighted_Add_Layer')([weighted_z_img, weighted_z_vol])
 
     # Method3: Use a full connect layer to generated the latent vectors
     # elif train_mode == 'fcc':
     #     z = concatenate([z_img, z_vol])
     #     z = Dense(units=z_dim, activation= 'tanh', name='FCC_Layer')(z)
 
-    MMI_encoder = Model([img_input, vol_input], [mu, logvar, z])
+    MMI_encoder = Model([img_input, vol_input], [z_mean, z_logvar, z])
     MMI_decoder = get_voxel_decoder(z_dim)
     decoded_vol = MMI_decoder(z)
 
@@ -53,21 +55,20 @@ def get_MMI(z_dim = 200, train_mode = None):
 
     return { 'vol_inputs': vol_input,
              'img_inputs': img_input,
-             'mu_img': img_encoder_output[0],
-             'mu_vol': vol_encoder_output[0],
-             'logvar_img': img_encoder_output[1],
-             'logvar_vol': vol_encoder_output[1],
+             'img_z_mean': img_encoder_output[0],
+             'vol_z_mean': vol_encoder_output[0],
+             'img_z_logvar': img_encoder_output[1],
+             'vol_z_logvar': vol_encoder_output[1],
              'z_img': img_encoder_output[2],
              'z_vol': vol_encoder_output[2],
-             'mu':mu,
-             'logvar': logvar,
+             'z_mean':z_mean,
+             'z_logvar': z_logvar,
              'z': z,
              'image_encoder': img_encoder,
              'voxel_encoder': vol_encoder,
              'MMI_encoder': MMI_encoder,
              'MMI_decoder': MMI_decoder,
              'MMI': MMI,
-             'outputs': decoded_vol
-    }
+             'outputs': decoded_vol}
 
 

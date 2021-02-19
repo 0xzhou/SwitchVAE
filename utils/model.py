@@ -10,12 +10,12 @@ from tensorflow.keras import backend as K
 from utils import globals as g
 
 def sampling(args):
-    mu, logvar = args
-    batch = K.shape(mu)[0]
-    dim = K.int_shape(mu)[1]
+    z_mean, z_logvar = args
+    batch = K.shape(z_mean)[0]
+    dim = K.int_shape(z_mean)[1]
     epsilon = K.random_normal(shape = (batch, dim))
 
-    return mu + K.exp(logvar / 2.0) * epsilon
+    return z_mean + K.exp(z_logvar / 2.0) * epsilon
 
 def get_voxel_encoder(z_dim=200):
     enc_in = Input(shape=g.VOXEL_INPUT_SHAPE, name='VoxEncoder_inputs')
@@ -39,15 +39,15 @@ def get_voxel_encoder(z_dim=200):
     enc_fc1 = BatchNormalization(name='VoxEncoder_bn_fc1')(Dense(units=343, kernel_initializer='glorot_normal',
                                          activation='elu', name='VoxEncoder_fcc1')(Flatten()(enc_conv4)))
 
-    mu = BatchNormalization(name='VoxEncoder_bn_mu')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                    activation=None, name='VoxEncoder_mu')(enc_fc1))
+    z_mean = BatchNormalization(name='VoxEncoder_bn_z_mean')(Dense(units=z_dim, kernel_initializer='glorot_normal',
+                                    activation=None, name='VoxEncoder_z_mean')(enc_fc1))
 
-    logvar = BatchNormalization(name='VoxEncoder_bn_log_sigma')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                           activation=None, name='VoxEncoder_log_sigma')(enc_fc1))
+    z_logvar = BatchNormalization(name='VoxEncoder_bn_z_logvar')(Dense(units=z_dim, kernel_initializer='glorot_normal',
+                                           activation=None, name='VoxEncoder_z_logvar')(enc_fc1))
 
-    z = Lambda(sampling, output_shape=(z_dim,), name='VoxEncoder_latent_vector')([mu, logvar])
+    z = Lambda(sampling, output_shape=(z_dim,), name='VoxEncoder_z')([z_mean, z_logvar])
 
-    encoder = Model(enc_in, [mu, logvar, z], name='Voxel_Encoder')
+    encoder = Model(enc_in, [z_mean, z_logvar, z], name='Voxel_Encoder')
     return encoder
 
 
@@ -91,7 +91,7 @@ def get_voxel_decoder(z_dim=200):
     decoder = Model(dec_in, dec_conv5, name='Voxel_Decoder')
     return decoder
 
-def split_inputs(inputs):
+def _split_inputs(inputs):
     """
     split inputs to NUM_VIEW input
     :param inputs: a Input with shape VIEWS_IMAGE_SHAPE
@@ -112,7 +112,7 @@ def _view_pool(views):
     reduced = K.max(concated, 0)
     return reduced
 
-def cnn_img(input_shape):
+def _cnn_img(input_shape):
     """
     this is the CNN1 Network in paper
     :param input_shape: a image's shape, not the shape of a batch of image
@@ -150,24 +150,25 @@ def get_img_encoder(z_dim=200):
     """
     input: Batch x Viewns x Width x Height x Channels (tensor)
     """
-    # input placeholder with shape (None, 12, 137, 137, 3)
+    # input placeholder with shape (None, 24, 137, 137, 3)
     inputs = Input(shape=g.VIEWS_IMAGE_SHAPE, name='MVCNN_input')
 
     # split inputs into views(a list), every element of
     # view has shape (None, 137, 137, 3)
-    views = Lambda(split_inputs, name='MVCNN_split')(inputs)
-    cnn_model = cnn_img(g.IMAGE_SHAPE)
+    views = Lambda(_split_inputs, name='MVCNN_split')(inputs)
+    cnn_model = _cnn_img(g.IMAGE_SHAPE)
     view_pool = []
 
-    # every view share the same cnn1_model(share the weights)
-    for view in views:
-        view_pool.append(cnn_model(view))
+    #every view share the same cnn1_model(share the weights)
 
-    # view pool layer
-    pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
-
-    # cnn2 from here a full-connected layer
-    fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
+    if g.NUM_VIEWS == 1:
+        cnn_output = cnn_model(views)
+        fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(cnn_output)
+    else:
+        for view in views:
+            view_pool.append(cnn_model(view))
+            pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
+            fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
 
     # a dropout  layer, when call function evaluate and predict,
     # dropout layer will disabled automatically
@@ -177,13 +178,13 @@ def get_img_encoder(z_dim=200):
     dropout7 = Dropout(0.6, name='MVCNN_dropout7')(fc7)
     fc8 = Dense(343, kernel_regularizer=l2(0.004), name='MVCNN_fcc8')(dropout7)
 
-    mu = BatchNormalization(name='MVCNN_bn_mu')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                    activation=None, name='MVCNN_mu')(fc8))
-    log_sigma = BatchNormalization(name='MVCNN_bn_log_sigma')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                           activation=None, name='MVCNN_log_sigma')(fc8))
+    z_mean = BatchNormalization(name='MVCNN_bn_z_mean')(Dense(units=z_dim, kernel_initializer='glorot_normal',
+                                    activation=None, name='MVCNN_z_mean')(fc8))
+    z_logvar = BatchNormalization(name='MVCNN_bn_z_logvar')(Dense(units=z_dim, kernel_initializer='glorot_normal',
+                                           activation=None, name='MVCNN_z_logvar')(fc8))
 
-    z = Lambda(sampling, output_shape=(z_dim,), name='MVCNN_latent_vector')([mu, log_sigma])
+    z = Lambda(sampling, output_shape=(z_dim,), name='MVCNN_z')([z_mean, z_logvar])
 
-    mvcnn_model = keras.Model(inputs=inputs, outputs=[mu, log_sigma, z], name='Image_MVCNN_VAE')
+    mvcnn_model = keras.Model(inputs=inputs, outputs=[z_mean, z_logvar, z], name='Image_MVCNN_VAE')
     return mvcnn_model
 

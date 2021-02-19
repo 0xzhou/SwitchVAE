@@ -1,9 +1,7 @@
 import numpy as np
 import glob, os
-import scipy.ndimage as nd
 from utils import binvox_rw
 from utils import globals as g
-# import globals as g
 from PIL import Image
 
 
@@ -16,56 +14,50 @@ def read_voxel_data(model_path):
 def write_binvox_file(pred, filename):
     with open(filename, 'w') as f:
         voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xzy')
-        # voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xyz')
+        #voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xyz')
         binvox_rw.write(voxel, f)
         f.close()
 
 
-def imagepath2matrix(image_dataset_path, single_image_shape=(137, 137, 3)):
-    image_files = glob.glob(image_dataset_path + "/*/*" + "png")
-    object_hash = os.listdir(image_dataset_path)
-    images = np.zeros((24,) + single_image_shape, dtype=np.float32)
+def imagePath2matrix(imagePath, train=True):
+    image_files = glob.glob(imagePath + "/*/*" + "png")
+    images = np.zeros(g.VIEWS_IMAGE_SHAPE, dtype=np.float32)
     for i, image_file in enumerate(image_files):
         image = Image.open(image_file)
         image = np.asarray(image)
-        image = preprocess_img(image)
+        image = preprocess_img(image, train)
         images[i] = image
 
     return images
 
-def image_folder_list2matrix(image_folder_list):
+def voxelPath2matrix(voxelPath):
+    voxel_file = glob.glob(voxelPath+"/*binvox")
+    voxel = read_voxel_data(voxel_file[0])
+    return voxel.astype(np.float32)
+
+def imagePathList2matrix(imagePathList, train = True):
     """
-    Transform image path named by hash to numpy array
-    Args:
-        image_folder_list:  ['~/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627/1a8bbf2994788e2743e99e0cae970928', ...]
-
-    Returns: 5 dimensional numpy array
+    imagePathList: ['~/Datasets/3d-r2n2-datasat/ShapeNetRendering/03001627/1a8bbf2994788e2743e99e0cae970928', ...]
+    Returns: List_size x Views x Width x Height x Channels (numpy array)
     """
-    size = len(image_folder_list)
-    images_one_batch = np.zeros((size, 24) + g.IMAGE_SHAPE, dtype=np.float32)
-    for i, element in enumerate(image_folder_list):
-        images_one_batch[i] = imagepath2matrix(element)
-    return images_one_batch
+    size = len(imagePathList)
+    images = np.zeros((size, 24) + g.IMAGE_SHAPE, dtype=np.float32)
+    for i, path in enumerate(imagePathList):
+        images[i] = imagePath2matrix(path, train)
+    return images
 
 
-def voxel_folder_list2matrix(voxel_file_list, padding=False):
+def voxelPathList2matrix(voxelPathList):
     """
-    Transform a list of voxel folders to numpy array, this function is used in train_MMI.py
-    Args:
-        voxel_file_list: ['~/Datasets/3d-r2n2-datasat/ShapeNetVox32/03001627/1a8bbf2994788e2743e99e0cae970928', ...]
-        padding:
-
-    Returns: 4 dimensional numpy array
+    voxelPathList: ['~/Datasets/3d-r2n2-datasat/ShapeNetVox32/03001627/1a8bbf2994788e2743e99e0cae970928', ...]
+    Returns: List_size x 1 x 32 x 32 x 32 (numpy array)
     """
-    size = len(voxel_file_list)
-    voxel_one_batch = np.zeros((size,) + g.VOXEL_INPUT_SHAPE, dtype=np.float32)
-    for i, element in enumerate(voxel_file_list):
-        model = glob.glob(element + '/*')
-        model = read_voxel_data(model[0])
-        voxel_one_batch[i] = model.astype(np.float32)
-
-    #voxel_one_batch = 3.0 * voxel_one_batch - 1.0
-    return voxel_one_batch
+    size = len(voxelPathList)
+    voxels = np.zeros((size,) + g.VOXEL_INPUT_SHAPE, dtype=np.float32)
+    for i, path in enumerate(voxelPathList):
+        voxels[i] = voxelPath2matrix(path)
+    # voxels = 3.0 * voxels - 1.0
+    return voxels
 
 
 def add_random_color_background(im, color_range):

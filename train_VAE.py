@@ -109,7 +109,7 @@ def main(args):
 
     hash = os.listdir(voxel_dataset_path)
     voxel_folder_list = [os.path.join(voxel_dataset_path,id) for id in hash]
-    data_train = data_IO.voxel_folder_list2matrix(voxel_folder_list)
+    data_train = data_IO.voxelPathList2matrix(voxel_folder_list)
 
     train_callbacks = [
         tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=0.000001, cooldown=1),

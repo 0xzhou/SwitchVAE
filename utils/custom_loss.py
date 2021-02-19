@@ -62,3 +62,4 @@ def total_correlation(z, z_mean, z_logvar, prior='normal'):
         axis=1,
         keepdims=False)
     return tf.reduce_mean(log_qz - log_qz_product)
+

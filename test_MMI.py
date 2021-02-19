@@ -8,6 +8,7 @@ from tensorflow.keras.models import Model
 
 from utils import save_volume, data_IO, arg_parser, model
 from utils import globals as g
+from MMI import *
 
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
@@ -30,18 +31,14 @@ def main(args):
 
         voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
         voxel_encoder = model.get_voxel_encoder(z_dim)
-        # voxel_encoder = model.get_voxel_encoder_old(z_dim)
-
         decoder = model.get_voxel_decoder(z_dim)
-        # decoder = model.get_voxel_decoder_old(z_dim)
-
         output = decoder(voxel_encoder(voxel_input))
         voxel_vae = Model(voxel_input, output, name='Test_Voxel_VAE')
         voxel_vae.load_weights(weights_path, by_name=True)
 
         hash = os.listdir(voxel_data_path)
         voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
-        voxels = data_IO.voxel_folder_list2matrix(voxel_file_list)
+        voxels = data_IO.voxelPathList2matrix(voxel_file_list)
         reconstructions = voxel_vae.predict(voxels)
 
     elif input_form == 'image':
@@ -56,8 +53,24 @@ def main(args):
 
         hash = os.listdir(image_data_path)
         image_file_list = [os.path.join(image_data_path, id) for id in hash]
-        images = data_IO.image_folder_list2matrix(image_file_list)
+        voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
+        voxels = data_IO.voxelPathList2matrix(voxel_file_list)
+        images = data_IO.imagePathList2matrix(image_file_list, train=False)
         reconstructions = image_vae.predict(images)
+
+    elif input_form == 'both':
+        test_result_path = args.save_dir + '/test_sub_both_input'
+
+        mmi_vae = get_MMI(z_dim, 'weighted_add')
+        mmi_vae.load_weights(weights_path, by_name=True)
+
+        hash = os.listdir(image_data_path)
+        image_file_list = [os.path.join(image_data_path, id) for id in hash]
+        voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
+
+        images = data_IO.imagePathList2matrix(image_file_list, train=False)
+        voxels = data_IO.voxelPathList2matrix(voxel_file_list)
+        reconstructions = mmi_vae.predict([images, ])
 
     reconstructions[reconstructions > 0] = 1
     reconstructions[reconstructions < 0] = 0
@@ -75,6 +88,7 @@ def main(args):
             shutil.copy2(file, test_result_path)
 
     # save the generated objects files
+    save_volume.save_metrics(reconstructions,voxels,voxel_data_path,image_data_path,input_form,test_result_path)
     for i in range(reconstructions.shape[0]):
         save_volume.save_binvox_output_2(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin=True,
                                          save_img=save_the_img)

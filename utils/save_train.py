@@ -25,11 +25,8 @@ def save_config_pro(save_path):
 
     train_config_save_dir = save_path + '/training_configuration'
     os.makedirs(train_config_save_dir)
-
     current_path = os.getcwd()
-    print("Current path is", current_path)
     files = os.listdir(current_path)
-    print("Files under current path are", files)
     for file in files:
         if file.endswith('.py') or file.endswith('.sh'):
             file_path = os.path.join(current_path,file)
