@@ -61,7 +61,7 @@ def main(args):
     elif input_form == 'both':
         test_result_path = args.save_dir + '/test_sub_both_input'
 
-        mmi_vae = get_MMI(z_dim, 'weighted_add')
+        mmi_vae = get_MMI(z_dim, 'weighted_add')['MMI']
         mmi_vae.load_weights(weights_path, by_name=True)
 
         hash = os.listdir(image_data_path)
@@ -70,7 +70,7 @@ def main(args):
 
         images = data_IO.imagePathList2matrix(image_file_list, train=False)
         voxels = data_IO.voxelPathList2matrix(voxel_file_list)
-        reconstructions = mmi_vae.predict([images, ])
+        reconstructions = mmi_vae.predict([images, voxels])
 
     reconstructions[reconstructions > 0] = 1
     reconstructions[reconstructions < 0] = 0
@@ -80,8 +80,8 @@ def main(args):
 
     # save the original test dataset file and generate the image
     if save_the_ori:
-        voxel_path = voxel_data_path[:-9]
-        ori_files_path = os.path.join(voxel_path, 'test_sub_visulization')
+        up_level_path = os.path.split(voxel_data_path)[0]
+        ori_files_path = os.path.join(up_level_path, 'test_sub_visulization')
         ori_files = os.listdir(ori_files_path)
         for file in ori_files:
             file = os.path.join(ori_files_path, file)

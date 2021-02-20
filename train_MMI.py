@@ -140,7 +140,7 @@ def main(args):
         callbacks=train_callbacks
     )
 
-    MMI.save_weights(os.path.join(train_data_path, 'end_weights_{epoch:03d}_{loss:.4f}.h5'))
+    MMI.save_weights(os.path.join(train_data_path, 'end_weights.h5'))
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))

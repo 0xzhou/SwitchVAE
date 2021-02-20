@@ -38,9 +38,11 @@ def get_MMI(z_dim = 200, train_mode = None):
         weight_op_img = Lambda(lambda x: x * g.IMG_WEIGHT, name='Imgae_Weighted_Layer')
         weight_op_vol = Lambda(lambda x: x * g.VOL_WEIGHT, name='Voxel_Weighted_Layer')
 
-        weighted_z_img = weight_op_img(img_encoder_output[2])
-        weighted_z_vol = weight_op_vol(vol_encoder_output[2])
-        z = Add(name='Weighted_Add_Layer')([weighted_z_img, weighted_z_vol])
+        img_z_mean, img_z_logvar, img_z = [weight_op_img(x) for x in img_encoder_output]
+        vol_z_mean, vol_z_logvar, vol_z = [weight_op_vol(x) for x in vol_encoder_output]
+        z_mean = Add(name='Weighted_Add_z_mean')([img_z_mean, vol_z_mean])
+        z_logvar = Add(name='Weighted_Add_z_logvar')([img_z_logvar, vol_z_logvar])
+        z = Add(name='Weighted_Add_z')([img_z, vol_z])
 
     # Method3: Use a full connect layer to generated the latent vectors
     # elif train_mode == 'fcc':

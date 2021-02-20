@@ -167,8 +167,8 @@ def get_img_encoder(z_dim=200):
     else:
         for view in views:
             view_pool.append(cnn_model(view))
-            pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
-            fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
+        pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
+        fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
 
     # a dropout  layer, when call function evaluate and predict,
     # dropout layer will disabled automatically
