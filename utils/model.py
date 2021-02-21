@@ -7,6 +7,7 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 
+from classification_models.keras import Classifiers
 from utils import globals as g
 
 def sampling(args):
@@ -146,6 +147,21 @@ def _cnn_img(input_shape):
     return cnn
 
 
+def _resnet18(input_shape):
+    inputs = keras.Input(shape=input_shape, name='ResNet18_inputs')
+    ResNet18, preprocess_input = Classifiers.get('resnet18')
+
+    # pre-trained model
+    model = ResNet18((137, 137, 3), weights='imagenet', classes=1000)
+
+    # new created model
+    #model = ResNet18((137, 137, 3), weights=None, classes=4096)
+
+    output = model(inputs)
+    resnet18 = keras.Model(inputs=inputs, outputs=output, name='ResNet18')
+
+    return resnet18
+
 def get_img_encoder(z_dim=200):
     """
     input: Batch x Viewns x Width x Height x Channels (tensor)
@@ -157,24 +173,32 @@ def get_img_encoder(z_dim=200):
     # view has shape (None, 137, 137, 3)
     views = Lambda(_split_inputs, name='MVCNN_split')(inputs)
     cnn_model = _cnn_img(g.IMAGE_SHAPE)
+    resnet18_model = _resnet18(g.IMAGE_SHAPE)
     view_pool = []
 
     #every view share the same cnn1_model(share the weights)
 
     if g.NUM_VIEWS == 1:
-        cnn_output = cnn_model(views)
+        #cnn_output = cnn_model(views)
+        cnn_output = resnet18_model(views)
+
         fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(cnn_output)
     else:
         for view in views:
-            view_pool.append(cnn_model(view))
+            #view_pool.append(cnn_model(view))
+            view_pool.append(resnet18_model(view))
+
         pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
         fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
+        #fc6 = Dense(units=1000, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
 
     # a dropout  layer, when call function evaluate and predict,
     # dropout layer will disabled automatically
     dropout6 = Dropout(0.6, name='MVCNN_dropout6')(fc6)
 
     fc7 = Dense(4096, 'relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc7')(dropout6)
+    #fc7 = Dense(512, 'relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc7')(dropout6)
+
     dropout7 = Dropout(0.6, name='MVCNN_dropout7')(fc7)
     fc8 = Dense(343, kernel_regularizer=l2(0.004), name='MVCNN_fcc8')(dropout7)
 

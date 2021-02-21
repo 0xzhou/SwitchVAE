@@ -5,6 +5,6 @@ python train_MMI.py --loss vae  \
                 --save_dir /home/zmy/TrainingData/2021.2.17 \
                 --num_epochs 200 \
                 --batch_size 8 \
-                --initial_learning_rate 0.0002 \
+                --initial_learning_rate 0.002 \
                 --beta 2 \
                 --latent_vector_size 128
