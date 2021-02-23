@@ -53,7 +53,7 @@ def get_MMI(z_dim = 200, train_mode = None):
     MMI_decoder = get_voxel_decoder(z_dim)
     decoded_vol = MMI_decoder(z)
 
-    MMI = Model(MMI_encoder.inputs, decoded_vol)
+    MMI = Model([img_input,vol_input], decoded_vol)
 
     return { 'vol_inputs': vol_input,
              'img_inputs': img_input,

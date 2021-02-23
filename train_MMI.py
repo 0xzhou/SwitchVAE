@@ -5,7 +5,7 @@ from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras import backend as K
 
 from MMI import *
-from utils import data_IO, arg_parser, save_train, custom_loss
+from utils import data_IO, arg_parser, save_train, custom_loss, metrics
 import sys, os
 
 ConFig = tf.ConfigProto()
@@ -25,6 +25,8 @@ def main(args):
     image_dataset_path = args.image_dir
     save_path = args.save_dir
     train_data_path = save_train.create_log_dir(save_path)
+    model_pdf_path = os.path.join(train_data_path,'model_pdf_train')
+    os.makedirs(model_pdf_path)
 
     # Model selection
     model = get_MMI(z_dim, 'switch')
@@ -38,6 +40,7 @@ def main(args):
 
     encoder = model['MMI_encoder']
     image_encoder = model['image_encoder']
+    image_encoder.load_weights('/home/zmy/Downloads/resnet18_imagenet_1000_no_top.h5',by_name=True)
     voxel_encoder = model['voxel_encoder']
     decoder = model['MMI_decoder']
     MMI = model['MMI']
@@ -55,6 +58,10 @@ def main(args):
     # Loss in betatc VAE
     tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, z_mean, z_logvar)
 
+    # Add metrics
+    #precision = metrics.get_precision(vol_inputs, outputs)
+    IoU = metrics.get_IoU(vol_inputs,outputs)
+
     #opt = Adam(lr=learning_rate)
     opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
@@ -68,7 +75,9 @@ def main(args):
         # total_loss = BCE_loss + kl_loss
         MMI.add_loss(BCE_loss)
         MMI.add_loss(kl_loss)
-        MMI.compile(optimizer=opt, metrics=['accuracy'])
+        MMI.compile(optimizer=opt)
+        #MMI.add_metric(precision, name='precision', aggregation='mean')
+        MMI.add_metric(IoU, name='IoU', aggregation='mean')
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
     elif loss_type == 'bvae':
@@ -93,11 +102,11 @@ def main(args):
     # MMI.add_loss(total_loss)
     # MMI.compile(optimizer=adam, metrics=['accuracy'])
 
-    plot_model(MMI, to_file=os.path.join(train_data_path, 'MMI.pdf'), show_shapes=True)
-    plot_model(encoder, to_file=os.path.join(train_data_path, 'MMI-encoder.pdf'), show_shapes=True)
-    plot_model(decoder, to_file=os.path.join(train_data_path, 'MMI-decoder.pdf'), show_shapes=True)
-    plot_model(image_encoder, to_file=os.path.join(train_data_path, 'image-encoder.pdf'), show_shapes=True)
-    plot_model(voxel_encoder, to_file=os.path.join(train_data_path, 'voxel-encoder.pdf'), show_shapes=True)
+    plot_model(MMI, to_file=os.path.join(model_pdf_path, 'MMI.pdf'), show_shapes=True)
+    plot_model(encoder, to_file=os.path.join(model_pdf_path, 'MMI-encoder.pdf'), show_shapes=True)
+    plot_model(decoder, to_file=os.path.join(model_pdf_path, 'MMI-decoder.pdf'), show_shapes=True)
+    plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'image-encoder.pdf'), show_shapes=True)
+    plot_model(voxel_encoder, to_file=os.path.join(model_pdf_path, 'voxel-encoder.pdf'), show_shapes=True)
     save_train.save_config_pro(save_path=train_data_path)
 
     def generate_MMI_batch_data(voxel_path, image_path, batch_size):
@@ -122,7 +131,7 @@ def main(args):
                 yield ([image_one_batch, voxel_one_batch], )
 
     train_callbacks = [
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=0.000001, cooldown=1),
+        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=1e-7, cooldown=1),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log'),
         tf.keras.callbacks.ModelCheckpoint(
@@ -134,13 +143,14 @@ def main(args):
 
     MMI.fit_generator(
         generate_MMI_batch_data(voxel_dataset_path, image_dataset_path, batch_size),
-        steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
-        #steps_per_epoch= 100,
+        #steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
+        steps_per_epoch= 100,
         epochs=epoch_num,
         callbacks=train_callbacks
     )
 
     MMI.save_weights(os.path.join(train_data_path, 'end_weights.h5'))
+    #MMI.save("end_model.h5")
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))
