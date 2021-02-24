@@ -40,7 +40,6 @@ def main(args):
 
     encoder = model['MMI_encoder']
     image_encoder = model['image_encoder']
-    image_encoder.load_weights('/home/zmy/Downloads/resnet18_imagenet_1000_no_top.h5',by_name=True)
     voxel_encoder = model['voxel_encoder']
     decoder = model['MMI_decoder']
     MMI = model['MMI']
@@ -137,14 +136,14 @@ def main(args):
         tf.keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(train_data_path, 'weights_{epoch:03d}_{loss:.4f}.h5'),
             save_weights_only=True,
-            period=30
+            period=50
         )
     ]
 
     MMI.fit_generator(
         generate_MMI_batch_data(voxel_dataset_path, image_dataset_path, batch_size),
-        #steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
-        steps_per_epoch= 100,
+        steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
+        #steps_per_epoch= 100,
         epochs=epoch_num,
         callbacks=train_callbacks
     )

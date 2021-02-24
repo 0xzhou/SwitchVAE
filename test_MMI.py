@@ -38,7 +38,6 @@ def main(args):
         decoder.load_weights(weights_path, by_name=True)
         output = decoder(voxel_encoder(voxel_input)[0])
         voxel_vae = Model(voxel_input, output, name='Test_Voxel_VAE')
-        voxel_vae.load_weights(weights_path, by_name=True)
 
         hash = os.listdir(voxel_data_path)
         voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]

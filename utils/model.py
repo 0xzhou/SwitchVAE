@@ -3,13 +3,12 @@ import numpy as np
 import tensorflow.keras as keras
 
 from tensorflow.keras.layers import Input, BatchNormalization, Conv3D, Conv2D, MaxPool2D, Dense, Dropout, Flatten, \
-    Lambda, Reshape, Conv3DTranspose, AveragePooling2D, ZeroPadding2D, Activation, MaxPooling2D, Add
+    Lambda, Reshape, Conv3DTranspose, AveragePooling2D, ZeroPadding2D, Activation, MaxPooling2D, Add, GRU
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
 from tensorflow.keras.utils import plot_model
 
-from classification_models.tfkeras import Classifiers
 from utils import globals as g
 
 
@@ -129,6 +128,11 @@ def _view_pool(views):
     reduced = K.max(concated, 0)
     return reduced
 
+def _view_features(views):
+    view_features = [K.expand_dims(view, -2) for view in views]
+    view_features = K.concatenate(view_features, -2)
+    return  view_features
+
 
 def _cnn_img(input_shape):
     """
@@ -163,24 +167,14 @@ def _cnn_img(input_shape):
     cnn = keras.Model(inputs=inputs, outputs=reshape, name='SVCNN')
     return cnn
 
-
-def _resnet18(input_shape):
-    inputs = keras.Input(shape=input_shape, name='ResNet18_inputs')
-    ResNet18, preprocess_input = Classifiers.get('resnet18')
-
-    # pre-trained model
-    # model = ResNet18((137, 137, 3), weights='imagenet', include_top=False)
-
-    # new created model
-    model = ResNet18((137, 137, 3), weights=None, include_top=False)
-
-    output = model(inputs)
-    resnet18 = keras.Model(inputs=inputs, outputs=output, name='ResNet18')
-
-    return resnet18
+def _gru(feature_size):
+    inputs = keras.Input(shape=(g.NUM_VIEWS, feature_size), name='SVGRU_inputs')
+    output = GRU(units=feature_size, input_shape=(g.NUM_VIEWS, feature_size))(inputs)
+    gru =  keras.Model(inputs=inputs, outputs= output, name='MVGRU')
+    return gru
 
 
-def get_img_encoder(z_dim=200):
+def get_img_encoder(z_dim=200, use_resnet = True):
     """
     input: Batch x Viewns x Width x Height x Channels (tensor)
     """
@@ -190,43 +184,41 @@ def get_img_encoder(z_dim=200):
     # split inputs into views(a list), every element of
     # view has shape (None, 137, 137, 3)
     views = Lambda(_split_inputs, name='MVCNN_split')(inputs)
-    cnn_model = _cnn_img(g.IMAGE_SHAPE)
-    #resnet18_model = _resnet18(g.IMAGE_SHAPE)
-    resnet18_model = get_resnet18()
+    if use_resnet:
+        cnn_model = get_resnet18()
+    else:
+        cnn_model = _cnn_img(g.IMAGE_SHAPE)
+
+    gru_model = _gru(feature_size=1024)
     view_pool = []
 
-    # every view share the same cnn1_model(share the weights)
-
     if g.NUM_VIEWS == 1:
-        # cnn_output = cnn_model(views)
-        features = resnet18_model(views)
-        flatten = Flatten(name="MVCNN_flatten1")(features)
+        cnn_model_output = cnn_model(views)
+        cnn_model_output = AveragePooling2D((5,5))(cnn_model_output)
+        flatten = Flatten(name="MVCNN_flatten1")(cnn_model_output)
         fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(flatten)
     else:
         for i, view in enumerate(views):
-            features = resnet18_model(view)
-            # average_features = AveragePooling2D((5,5))(features)
-            flatten = Flatten(name="MVCNN_flatten"+str(i))(features)
-            view_pool.append(flatten)
+            features = cnn_model(view)
+            view_pool.append(features)
+            view_features = Lambda(_view_features, name='MVCNN_view_features')(view_pool)
+        features = gru_model(view_features)
 
-        pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
-        fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
-        # fc6 = Dense(units=1000, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
+        # pool5_vp = Lambda(_view_pool, name='MVCNN_view_pool')(view_pool)
+        # fc6 = Dense(units=4096, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(pool5_vp)
+        # fc6 = Dense(units=1000, activation='relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc6')(flatten)
 
     # a dropout  layer, when call function evaluate and predict,
     # dropout layer will disabled automatically
-    dropout6 = Dropout(0.6, name='MVCNN_dropout6')(fc6)
-
-    fc7 = Dense(1024, 'relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc7')(dropout6)
-    # fc7 = Dense(512, 'relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc7')(dropout6)
-
-    dropout7 = Dropout(0.6, name='MVCNN_dropout7')(fc7)
-    fc8 = Dense(343, kernel_regularizer=l2(0.004), name='MVCNN_fcc8')(dropout7)
+    # dropout6 = Dropout(0.6, name='MVCNN_dropout6')(fc6)
+    # fc7 = Dense(1024, 'relu', kernel_regularizer=l2(0.004), name='MVCNN_fcc7')(dropout6)
+    # dropout7 = Dropout(0.6, name='MVCNN_dropout7')(fc7)
+    # fc8 = Dense(343, kernel_regularizer=l2(0.004), name='MVCNN_fcc8')(dropout7)
 
     z_mean = BatchNormalization(name='MVCNN_bn_z_mean')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                                              activation=None, name='MVCNN_z_mean')(fc8))
+                                                              activation=None, name='MVCNN_z_mean')(features))
     z_logvar = BatchNormalization(name='MVCNN_bn_z_logvar')(Dense(units=z_dim, kernel_initializer='glorot_normal',
-                                                                  activation=None, name='MVCNN_z_logvar')(fc8))
+                                                                  activation=None, name='MVCNN_z_logvar')(features))
 
     z = Lambda(sampling, output_shape=(z_dim,), name='MVCNN_z')([z_mean, z_logvar])
 
@@ -424,14 +416,17 @@ def get_resnet18():
                            **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(x)
     x = Activation('relu', name='relu1')(x)
 
+    #x = AveragePooling2D((5,5), name='GRU_AP1')(x)
+    x = Flatten(name='resnet_flatten1')(x)
+    x = BatchNormalization(name='resnet_bn1',
+                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(Dense(units=4096, name='resnet_fcc1')(x))
+    x = Dense(units=1024, name='resnet_fcc2')(x)
+
+
     resnet18 = Model(inputs=img_input, outputs=x, name='ResNet18')
+    resnet18.load_weights('./utils/resnet18_imagenet_1000_no_top.h5', by_name=True)
+    #plot_model(resnet18, to_file='./resnet18.pdf', show_shapes=True)
 
-    print(resnet18.summary())
-
-    print(resnet18.input)
-    print(resnet18.output)
-    # print(backbone.get_layer(name='stage4_unit1_relu1').output)
-
-    print(resnet18.layers[-1])
+    #print(resnet18.summary())
 
     return  resnet18
