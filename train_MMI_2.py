@@ -29,7 +29,7 @@ def main(args):
     os.makedirs(model_pdf_path)
 
     # Model selection
-    model = get_MMI(z_dim, 'switch')
+    model = get_MMI(z_dim, train_mode='switch', use_pretrain=True)
 
     # Get model structures
     vol_inputs = model['vol_inputs']
@@ -40,9 +40,12 @@ def main(args):
 
     encoder = model['MMI_encoder']
     image_encoder = model['image_encoder']
+    cnn_model = model['cnn_model']
+    view_feature_aggregator = model['view_feature_aggregator']
     voxel_encoder = model['voxel_encoder']
     decoder = model['MMI_decoder']
     MMI = model['MMI']
+    switch_test = model['switch_test']
 
     # Loss functions
     loss_type = args.loss
@@ -53,6 +56,9 @@ def main(args):
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(custom_loss.weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7)),
                       'float32')
+
+    #
+    epsilon_test = (z - z_mean) / K.exp(z_logvar/2)
 
     # Loss in betatc VAE
     tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, z_mean, z_logvar)
@@ -79,6 +85,7 @@ def main(args):
         MMI.add_metric(IoU, name='IoU', aggregation='mean')
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
+        MMI.add_metric(switch_test, name='switch_test', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
         # total_loss = BCE_loss + args.beta * kl_loss
@@ -105,6 +112,8 @@ def main(args):
     plot_model(encoder, to_file=os.path.join(model_pdf_path, 'MMI-encoder.pdf'), show_shapes=True)
     plot_model(decoder, to_file=os.path.join(model_pdf_path, 'MMI-decoder.pdf'), show_shapes=True)
     plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'image-encoder.pdf'), show_shapes=True)
+    plot_model(cnn_model, to_file=os.path.join(model_pdf_path, 'cnn_model.pdf'), show_shapes=True)
+    plot_model(view_feature_aggregator, to_file=os.path.join(model_pdf_path, 'view_feature_aggregator.pdf'), show_shapes=True)
     plot_model(voxel_encoder, to_file=os.path.join(model_pdf_path, 'voxel-encoder.pdf'), show_shapes=True)
     save_train.save_config_pro(save_path=train_data_path)
 
@@ -143,17 +152,17 @@ def main(args):
     MMI.fit_generator(
         generate_MMI_batch_data(voxel_dataset_path, image_dataset_path, batch_size),
         #steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
-        steps_per_epoch= 100,
+        steps_per_epoch= 1,
         epochs=epoch_num,
         callbacks=train_callbacks
     )
 
     MMI.save_weights(os.path.join(train_data_path, 'end_weights.h5'))
     image_encoder.save_weights(os.path.join(train_data_path, 'image_encoder_weights.h5'))
+    cnn_model.save_weights(os.path.join(train_data_path, 'cnn_model_weights.h5'))
+    view_feature_aggregator.save_weights(os.path.join(train_data_path, 'view_feature_aggregator_weights.h5'))
     voxel_encoder.save_weights(os.path.join(train_data_path, 'voxel_encoder_weights.h5'))
     decoder.save_weights(os.path.join(train_data_path, 'encoder_weights.h5'))
-
-
     #MMI.save("end_model.h5")
 
 if __name__ == '__main__':

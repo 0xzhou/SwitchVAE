@@ -34,34 +34,19 @@ def main(args):
 
         voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
         voxel_encoder = model.get_voxel_encoder(z_dim)
-        initial_trainable_weights = voxel_encoder.trainable_weights
-        #print("The voxel_vae weights", voxel_encoder.weights)
-        print("The voxel_vae trainable weights", voxel_encoder.trainable_weights)
-        #print("The numbers of weights", len(voxel_encoder.weights))
-        print("The numbers of trainable weights", len(voxel_encoder.trainable_weights))
-        voxel_encoder.load_weights(weights_path, by_name=True)
-        loaded_trainable_weights = voxel_encoder.trainable_weights
-        print("-----------------------------------------------------------")
-        for i in range(len(initial_trainable_weights)):
-            print("1", initial_trainable_weights[i].eval())
-            print("Weights equal:", tf.math.equal(initial_trainable_weights[i], loaded_trainable_weights[i]))
 
-        print("The voxel_encoder weights", voxel_encoder.weights)
-        print("The voxel_encoder trainable weights", voxel_encoder.trainable_weights)
-        print("The numbers of weights", len(voxel_encoder.weights))
-        print("The numbers of trainable weights", len(voxel_encoder.trainable_weights))
+        voxel_encoder.load_weights(weights_path, by_name=True)
+
         voxel_encoder.trainable = False
         decoder = model.get_voxel_decoder(z_dim)
         decoder.load_weights(weights_path, by_name=True)
         output = decoder(voxel_encoder(voxel_input)[0])
         voxel_vae = Model(voxel_input, output, name='Test_Voxel_VAE')
-        print("Model summary is:", voxel_vae.summary())
 
         hash = os.listdir(voxel_data_path)
         voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
         voxels = data_IO.voxelPathList2matrix(voxel_file_list)
         reconstructions = voxel_vae.predict(voxels)
-
 
         plot_model(voxel_encoder, to_file=os.path.join(model_pdf_path,'Voxel_Encoder.pdf'), show_shapes=True)
         plot_model(decoder, to_file=os.path.join(model_pdf_path,'Encoder.pdf'), show_shapes=True)
@@ -73,40 +58,12 @@ def main(args):
 
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
         image_encoder = model.get_img_encoder(z_dim)
-        image_encoder.save_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_ini_1.h5')
-        #print("The image_encoder weights", image_encoder.weights)
-        print("The imgae_encoder trainable weights", image_encoder.trainable_weights)
-        initial_trainable_weights = image_encoder.trainable_weights
-        #print("The numbers of weights", len(image_encoder.weights))
-        print("The numbers of trainable weights", len(image_encoder.trainable_weights))
-        #image_encoder.load_weights(weights_path, by_name=True)
-        #image_encoder.load_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_weights.h5', by_name=True)
-        #image_encoder.save_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_loaded_from_trained_image_encoder.h5')
-        image_encoder.load_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/end_weights.h5',
-                                   by_name=True)
-        image_encoder.save_weights(
-            '/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_loaded_from_end_1.h5')
-        loaded_trainable_weights = image_encoder.trainable_weights
-
-        # for i in range(len(initial_trainable_weights)):
-        #     if initial_trainable_weights[i] == loaded_trainable_weights[i]:
-        #         print("Weight",str(i)," is equal")
-        #     else:
-        #         print("Not equal !!!!!!!!!!!!!!")
-
-        print("-----------------------------------------------------------")
-        print("The voxel_vae weights", image_encoder.weights)
-        print("The voxel_vae trainable weights", image_encoder.trainable_weights)
-        print("The numbers of weights", len(image_encoder.weights))
-        print("The numbers of trainable weights", len(image_encoder.trainable_weights))
-
 
         decoder = model.get_voxel_decoder(z_dim)
         decoder.load_weights(weights_path, by_name=True)
         output = decoder(image_encoder(image_input)[0])
         image_vae = Model(image_input, output)
-        #image_vae.load_weights(weights_path)
-        print("Model summary is:", image_vae.summary())
+
 
         hash = os.listdir(image_data_path)
         image_file_list = [os.path.join(image_data_path, id) for id in hash]

@@ -76,11 +76,12 @@ def main(args):
 
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
         image_encoder = model.get_img_encoder(z_dim)
+        image_encoder.load_weights(weights_path, by_name=True)
 
-        decoder = model.get_voxel_decoder_old(z_dim)
-        output = decoder(image_encoder(image_input))
+        decoder = model.get_voxel_decoder(z_dim)
+        decoder.load_weights(weights_path, by_name=True)
+        output = decoder(image_encoder(image_input)[0])
         test_model = Model(image_input, output)
-        test_model.load_weights(weights_path, by_name=True)
 
         hash = os.listdir(image_data_path)
         image_file_list = [os.path.join(image_data_path, id) for id in hash]
@@ -88,8 +89,18 @@ def main(args):
 
         # Get latent vector information
         z_mean, z_logvar, z = image_encoder.predict(images)
+        print("The 1st z_mean is:", z_mean[0])
+        print("The 10th z_mean is:", z_mean[9])
+        print("The 20th z_mean is:", z_mean[19])
+        print("The 30th z_mean is:", z_mean[29])
+        print("The 40th z_mean is:", z_mean[39])
+        print("The 1st latent vector is:", z[0])
+        print("The 10th latent vector is:", z[9])
+        print("The 20th latent vector is:", z[19])
+        print("The 30th latent vector is:", z[29])
+        print("The 40th latent vector is:", z[39])
         epsilon = (z - z_mean) / np.exp(z_logvar)
-        print("The epsilon in sampling layer is", epsilon)
+        #print("The epsilon in sampling layer is", epsilon)
 
         # record latent vectors in dictionary and save it in .pkl form
         latent_dict = latent2dict(hash, z_mean, z_logvar, z)

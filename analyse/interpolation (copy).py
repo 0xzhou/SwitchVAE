@@ -19,13 +19,13 @@ def main():
 
     latent_dims = 128
 
-    interpolation_save_path = '/home/zmy/Desktop/test/test_sub_image_input/interpolation'
-    latent_vector_file = open('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/test/image_latent_dict/latent_dict.pkl', 'rb')
-    weights_path = '/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/end_weights.h5'
+    interpolation_save_path = '/home/zmy/Downloads/OneDrive-2021-02-15/interpolation'
+    latent_vector_file = open('/home/zmy/Downloads/OneDrive-2021-02-15/voxel_latent_dict/latent_dict.pkl', 'rb')
+    weights_path = '/home/zmy/Downloads/OneDrive-2021-02-15/weights_200_-6.2687.h5'
 
     # Get the latent vector of two objects
     latent_vector_dict1 = pickle.load(latent_vector_file)
-    p1, p2 = latent_vector_dict1['2afa06a01a0a15fc504721639e19f609_z'], latent_vector_dict1['2c250a89e731a3d16f554fd9e81f2ffc_z']
+    p1, p2 = latent_vector_dict1['5c86904bdc50a1ca173c8feb9cba831_z'], latent_vector_dict1['5cc0b0e0035170434733824eae5cd9ae_z']
     print("The type of p1", type(p1))
     print("The shape of p2", p1.shape)
     latent_vectors = np.linspace(p1, p2, 11)
@@ -34,9 +34,16 @@ def main():
 
 
     # Define the decoder model
-
+    voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
+    voxel_encoder = model.get_voxel_encoder(latent_dims)
     decoder = model.get_voxel_decoder(latent_dims)
+    output = decoder(voxel_encoder(voxel_input))
+    test_model = Model(voxel_input, output)
+    test_model.load_weights(weights_path, by_name=True)
+    voxel_encoder.load_weights(weights_path,by_name= True)
     decoder.load_weights(weights_path,by_name=True)
+
+
     reconstructions = decoder.predict(latent_vectors)
 
     reconstructions[reconstructions > 0] = 1

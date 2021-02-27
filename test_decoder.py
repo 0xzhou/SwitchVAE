@@ -1,7 +1,10 @@
+
+
+
 import os
 import numpy as np
 import tensorflow as tf
-import shutil, sys
+import shutil, sys, pickle
 
 from tensorflow.keras.layers import Input, Lambda, Add
 from tensorflow.keras.models import Model, load_model
@@ -14,6 +17,14 @@ from MMI import *
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
 session = tf.Session(config=ConFig)
+
+def latent2dict(hash, mu, logvar, z):
+    output = {}
+    for i in range(len(hash)):
+        output[hash[i] + '_mu'] = mu[i]
+        output[hash[i] + '_logvar'] = logvar[i]
+        output[hash[i] + '_z'] = z[i]
+    return output
 
 
 def main(args):
@@ -69,55 +80,49 @@ def main(args):
 
 
     elif input_form == 'image':
-        test_result_path = args.save_dir + '/test_sub_image_input_1'
-
-        image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
-        image_encoder = model.get_img_encoder(z_dim)
-        image_encoder.save_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_ini_1.h5')
-        #print("The image_encoder weights", image_encoder.weights)
-        print("The imgae_encoder trainable weights", image_encoder.trainable_weights)
-        initial_trainable_weights = image_encoder.trainable_weights
-        #print("The numbers of weights", len(image_encoder.weights))
-        print("The numbers of trainable weights", len(image_encoder.trainable_weights))
-        #image_encoder.load_weights(weights_path, by_name=True)
-        #image_encoder.load_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_weights.h5', by_name=True)
-        #image_encoder.save_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_loaded_from_trained_image_encoder.h5')
-        image_encoder.load_weights('/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/end_weights.h5',
-                                   by_name=True)
-        image_encoder.save_weights(
-            '/home/zmy/TrainingData/2021.2.17/2021_02_25_17_59_00/image_encoder_loaded_from_end_1.h5')
-        loaded_trainable_weights = image_encoder.trainable_weights
-
-        # for i in range(len(initial_trainable_weights)):
-        #     if initial_trainable_weights[i] == loaded_trainable_weights[i]:
-        #         print("Weight",str(i)," is equal")
-        #     else:
-        #         print("Not equal !!!!!!!!!!!!!!")
-
-        print("-----------------------------------------------------------")
-        print("The voxel_vae weights", image_encoder.weights)
-        print("The voxel_vae trainable weights", image_encoder.trainable_weights)
-        print("The numbers of weights", len(image_encoder.weights))
-        print("The numbers of trainable weights", len(image_encoder.trainable_weights))
-
-
-        decoder = model.get_voxel_decoder(z_dim)
-        decoder.load_weights(weights_path, by_name=True)
-        output = decoder(image_encoder(image_input)[0])
-        image_vae = Model(image_input, output)
-        #image_vae.load_weights(weights_path)
-        print("Model summary is:", image_vae.summary())
+        test_result_path = args.save_dir + '/test_sub_image_input'
+        os.makedirs(test_result_path)
 
         hash = os.listdir(image_data_path)
         image_file_list = [os.path.join(image_data_path, id) for id in hash]
         voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
         voxels = data_IO.voxelPathList2matrix(voxel_file_list)
         images = data_IO.imagePathList2matrix(image_file_list, train=False)
-        reconstructions = image_vae.predict(images)
 
-        plot_model(image_encoder, to_file=os.path.join(model_pdf_path,'Image_Encoder.pdf'), show_shapes=True)
-        plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Decoder.pdf'), show_shapes=True)
-        plot_model(image_vae, to_file=os.path.join(model_pdf_path, 'Image_VAE.pdf'), show_shapes=True)
+        #image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
+        image_encoder = model.get_img_encoder(z_dim)
+        image_z_mean, image_z_logvar, image_z = image_encoder.predict(images)
+
+        latent_dict = latent2dict(hash, image_z_mean, image_z_logvar, image_z)
+
+        latent_dict_save_path = os.path.join(test_result_path, 'latent_dict.pkl')
+        save_latent_dict = open(latent_dict_save_path, 'wb')
+        pickle.dump(latent_dict, save_latent_dict)
+        save_latent_dict.close()
+
+        latent_features_file = open(latent_dict_save_path, 'rb')
+        latent_features_dict = pickle.load(latent_features_file)
+        latent_features = np.zeros((z_dim,), dtype=np.float32)
+        for i,id in enumerate(hash):
+            key_name = id + '_mu'
+            print(latent_features_dict[key_name])
+            latent_features[i] = np.asarray(latent_features_dict[key_name])
+        print("The shape of latent features", latent_features.shape)
+
+        decoder = model.get_voxel_decoder(z_dim)
+        decoder.load_weights(weights_path, by_name=True)
+        reconstructions = decoder.predict(latent_features)
+        #output = decoder(image_encoder(image_input)[0])
+        #image_vae = Model(image_input, output)
+        #image_vae.load_weights(weights_path)
+        #print("Model summary is:", image_vae.summary())
+
+
+        #reconstructions = image_vae.predict(images)
+
+        #plot_model(image_encoder, to_file=os.path.join(model_pdf_path,'Image_Encoder.pdf'), show_shapes=True)
+        #plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Decoder.pdf'), show_shapes=True)
+        #plot_model(image_vae, to_file=os.path.join(model_pdf_path, 'Image_VAE.pdf'), show_shapes=True)
 
     elif input_form == 'both':
         test_result_path = args.save_dir + '/test_sub_both_input'
