@@ -1,13 +1,12 @@
-import numpy as np
 
 import tensorflow.keras as keras
 
 from tensorflow.keras.layers import Input, BatchNormalization, Conv3D, Conv2D, MaxPool2D, Dense, Dropout, Flatten, \
-    Lambda, Reshape, Conv3DTranspose, AveragePooling2D, ZeroPadding2D, Activation, MaxPooling2D, Add, GRU
+    Lambda, Reshape, Conv3DTranspose, AveragePooling2D, ZeroPadding2D, Activation, MaxPooling2D, Add, GRU, Maximum
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
-from tensorflow.keras.utils import plot_model
+
 
 from utils import globals as g
 
@@ -17,9 +16,6 @@ def sampling(args):
     batch = K.shape(z_mean)[0]
     dim = K.int_shape(z_mean)[1]
     epsilon = K.random_normal(shape=(batch, dim))
-    with open('./test_sampling.txt', 'w') as f:
-        f.write(str(epsilon[0][0])+'\n')
-        f.close()
 
     return z_mean + K.exp(z_logvar / 2.0) * epsilon
 
@@ -120,15 +116,8 @@ def _split_inputs(inputs):
         splited_views.append(inputs[:, i, :, :, :])
     return splited_views
 
-
-def _view_pool(views):
-    """
-    this is the ViewPooling in the paper
-    :param views: the NUM_VIEWS outputs of CNN1
-    """
-    expanded = [K.expand_dims(view, 0) for view in views]
-    concated = K.concatenate(expanded, 0)
-    reduced = K.max(concated, 0)
+def _max_pool(views):
+    reduced = K.max(views, -2)
     return reduced
 
 def _view_features(views):
@@ -166,18 +155,42 @@ def _cnn_img(input_shape):
     pool5 = MaxPool2D((2, 2), (2, 2), name='SVCNN_pool5')(conv5)
 
     reshape = Flatten(name='SVCNN_flatten1')(pool5)
+    output = Dense(units=1024, name='SVCNN_fc1')(reshape)
 
-    cnn = keras.Model(inputs=inputs, outputs=reshape, name='SVCNN')
+    cnn = keras.Model(inputs=inputs, outputs=output, name='SVCNN')
     return cnn
 
-def _gru(feature_size):
-    inputs = keras.Input(shape=(g.NUM_VIEWS, feature_size), name='View_Feature_Aggreator_input')
-    output = GRU(units=feature_size, input_shape=(g.NUM_VIEWS, feature_size), name='GRU1')(inputs)
-    gru =  keras.Model(inputs=inputs, outputs= output, name='View_Feature_Aggreator')
-    return gru
+def get_gru_aggregator(feature_size, z_dim):
+    inputs = keras.Input(shape=(g.NUM_VIEWS, feature_size), name='GRU_Aggreator_input')
+    aggregated_output = GRU(units=feature_size,name='GRU1')(inputs)
+    fc1 = Dense(units=1024, name='GRU_Aggreator_fc1')(aggregated_output)
+
+    z_mean = BatchNormalization(name='GRU_Aggreator_bn_z_mean')(
+        Dense(units=z_dim, kernel_initializer='glorot_normal', activation=None, name='GRU_Aggreator_z_mean')(fc1))
+    z_logvar = BatchNormalization(name='GRU_Aggreator_bn_z_logvar')(
+        Dense(units=z_dim, kernel_initializer='glorot_normal', activation=None, name='GRU_Aggreator_z_logvar')(fc1))
+    z = Lambda(sampling, output_shape=(z_dim,), name='GRU_Aggreator_z')([z_mean, z_logvar])
+
+    aggregator =  keras.Model(inputs=inputs, outputs= [z_mean,z_logvar,z], name='GRU_Aggreator')
+    return aggregator
+
+def get_maxpool_aggregator(feature_size, z_dim):
+    inputs = keras.Input(shape=(g.NUM_VIEWS, feature_size), name = 'MAXPOOL_Aggreator_input')
+
+    aggregated_output = Lambda(_max_pool, name='MAXPOOL_Aggreator_maxpool')(inputs)
+    fc1 = Dense(units=1024, name='MAXPOOL_Aggreator_fc1')(aggregated_output)
+
+    z_mean = BatchNormalization(name='MAXPOOL_Aggreator__bn_z_mean')(
+        Dense(units=z_dim, kernel_initializer='glorot_normal', activation=None, name='MAXPOOL_Aggreator__z_mean')(fc1))
+    z_logvar = BatchNormalization(name='MAXPOOL_Aggreator_bn_z_logvar')(
+        Dense(units=z_dim, kernel_initializer='glorot_normal', activation=None, name='MAXPOOL_Aggreator_z_logvar')(fc1))
+    z = Lambda(sampling, output_shape=(z_dim,), name='MAXPOOL_Aggreator__z')([z_mean, z_logvar])
+
+    aggregator = keras.Model(inputs=inputs, outputs= [z_mean,z_logvar,z], name='MAXPOOL_Aggreator')
+    return aggregator
 
 
-def get_img_encoder(z_dim=200, use_resnet = True, use_gru = True):
+def get_img_encoder(z_dim=200):
     """
     input: Batch x Viewns x Width x Height x Channels (tensor)
     """
@@ -186,39 +199,43 @@ def get_img_encoder(z_dim=200, use_resnet = True, use_gru = True):
 
     # split inputs into views(a list), which has num_views elements, each element of views has shape (None, 137, 137, 3)
     views = Lambda(_split_inputs, name='MVCNN_split')(inputs)
-    if use_resnet:
-        cnn_model = get_resnet18()
+    if g.use_resnet:
+        image_embedding_model = get_resnet18()
     else:
-        cnn_model = _cnn_img(g.IMAGE_SHAPE)
+        image_embedding_model = _cnn_img(g.IMAGE_SHAPE)
 
-    view_pool = []
+    view_feature_list = []
 
     if g.NUM_VIEWS == 1:
         pass
-        # cnn_model_output = cnn_model(views)
-        # cnn_model_output = AveragePooling2D((5,5))(cnn_model_output)
+        # single_view_feature = image_embedding_model(views)
+        # view_feature_list.append(single_view_feature)
+        # if use_gru:
+        #     views_feature_aggregator = get_gru_aggregator(1024,z_dim)
+        #     view_features = Lambda(_view_features, name='MVCNN_view_features')(view_feature_list)
+        #     z_mean, z_logvar, z= views_feature_aggregator(view_features)
+        # else:
+        #     views_feature_aggregator = get_maxpool_aggregator(1024, z_dim)
+        #     view_features = Lambda(_view_features, name='MVCNN_view_features')(view_feature_list)
+        #     z_mean, z_logvar, z = views_feature_aggregator(view_features)
     else:
         for i, view in enumerate(views):
-            single_view_features = cnn_model(view)
-            view_pool.append(single_view_features)
+            single_view_features = image_embedding_model(view)
+            view_feature_list.append(single_view_features)
 
-        if use_gru:
-            views_feature_aggregator = _gru(feature_size=1024)
-            view_features = Lambda(_view_features, name='MVCNN_view_features')(view_pool)
-            view_features = views_feature_aggregator(view_features)
+        if g.use_gru:
+            views_feature_aggregator = get_gru_aggregator(1024, z_dim)
+            view_features = Lambda(_view_features, name='MVCNN_view_features')(view_feature_list)
+            z_mean, z_logvar, z = views_feature_aggregator(view_features)
         else:
-            views_feature_aggregator = None
-            view_features = Lambda(_view_pool(), name='MVCNN_view_features')(view_pool)
-
-    # VAE sampling
-    z_mean = BatchNormalization(name='MVCNN_bn_z_mean')(Dense(units=z_dim, kernel_initializer='glorot_normal', activation=None, name='MVCNN_z_mean')(view_features))
-    z_logvar = BatchNormalization(name='MVCNN_bn_z_logvar')(Dense(units=z_dim, kernel_initializer='glorot_normal',activation=None, name='MVCNN_z_logvar')(view_features))
-    z = Lambda(sampling, output_shape=(z_dim,), name='MVCNN_z')([z_mean, z_logvar])
+            views_feature_aggregator = get_maxpool_aggregator(1024, z_dim)
+            view_features = Lambda(_view_features, name='MVCNN_view_features')(view_feature_list)
+            z_mean, z_logvar, z = views_feature_aggregator(view_features)
 
     mvcnn_model = keras.Model(inputs=inputs, outputs=[z_mean, z_logvar, z], name='Image_MVCNN_VAE')
 
     return { 'mvcnn_model': mvcnn_model,
-             'cnn_model': cnn_model,
+             'image_embedding_model': image_embedding_model,
              'view_feature_aggregator': views_feature_aggregator}
 
 
@@ -422,7 +439,6 @@ def get_resnet18():
     resnet18 = Model(inputs=img_input, outputs=x, name='ResNet18')
     #resnet18.load_weights('./utils/resnet18_imagenet_1000_no_top.h5', by_name=True)
     #plot_model(resnet18, to_file='./resnet18.pdf', show_shapes=True)
-
     #print(resnet18.summary())
 
     return  resnet18

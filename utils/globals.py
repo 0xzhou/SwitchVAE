@@ -14,3 +14,6 @@ IMG_WEIGHT = 0.5
 # parameter in preprocess images
 TRAIN_NO_BG_COLOR_RANGE= [[225, 255], [225, 255], [225, 255]]
 TEST_NO_BG_COLOR_RANGE = [[240, 240], [240, 240], [240, 240]]
+
+use_resnet = True
+use_gru = True

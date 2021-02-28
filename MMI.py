@@ -1,54 +1,37 @@
-
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense, Lambda, concatenate, Add
-from utils.model import get_img_encoder, get_voxel_encoder, get_voxel_decoder
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
-import random
+from utils.model import get_img_encoder, get_voxel_encoder, get_voxel_decoder
 import utils.globals as g
-import pickle
 
-# def switch(args):
-#     img_output, vol_output = args[0], args[1]
-#     switch = K.random_uniform(shape=(1,))
-#     if tf.cast(switch, dtype=tf.float32) > g.SWITCH_PROBABILITY:
-#         with open('./test.txt', 'w') as f:
-#             f.write('use img')
-#         output = [img_output[0]+0*vol_output[0], img_output[1]+0*vol_output[1], img_output[2]+0*vol_output[2]]
-#     else:
-#         with open('./test.txt', 'w') as f:
-#             f.write('use vol')
-#         output = [vol_output[0]+0*img_output[0], vol_output[1]+0*img_output[1], vol_output[2]+0*img_output[2]]
-#     return output
 
 def switch(args):
     img_output, vol_output = args[0], args[1]
     switch = K.random_uniform(shape=(1,))
-    switch = tf.floor(switch/g.SWITCH_PROBABILITY)
-    with open('./test111.txt', 'w') as f:
-        f.write(str(switch))
-    output = switch*img_output + (1-switch)*vol_output
-    return output[0], output[1], output[2], switch
+    switch = tf.floor(switch / g.SWITCH_PROBABILITY)
+    output = switch * img_output + (1 - switch) * vol_output
+    return output[0], output[1], output[2]
 
-def get_MMI(z_dim = 200, train_mode = 'switch', use_pretrain = True):
 
-    img_input = Input(shape= g.VIEWS_IMAGE_SHAPE, name='Image_Input')
-    vol_input = Input(shape= g.VOXEL_INPUT_SHAPE, name='Voxel_Input')
+def get_MMI(z_dim=200, train_mode='switch', use_pretrain=True):
+    img_input = Input(shape=g.VIEWS_IMAGE_SHAPE, name='Image_Input')
+    vol_input = Input(shape=g.VOXEL_INPUT_SHAPE, name='Voxel_Input')
 
     img_encoder = get_img_encoder(z_dim)['mvcnn_model']
-    cnn_model = get_img_encoder(z_dim)['cnn_model']
+    image_embedding_model = get_img_encoder(z_dim)['image_embedding_model']
     view_feature_aggregator = get_img_encoder(z_dim)['view_feature_aggregator']
     vol_encoder = get_voxel_encoder(z_dim)
 
     if use_pretrain:
-        cnn_model.load_weights('./utils/resnet18_imagenet_1000_no_top.h5', by_name = True)
+        image_embedding_model.load_weights('./utils/resnet18_imagenet_1000_no_top.h5', by_name=True)
 
     img_encoder_output = img_encoder(img_input)
     vol_encoder_output = vol_encoder(vol_input)
 
     # Method1: Use "Switch" to train the latent vectors
     if train_mode == 'switch':
-        z_mean, z_logvar, z, switch_test = Lambda(switch, output_shape=(z_dim,), name= 'Switch_Layer')([img_encoder_output, vol_encoder_output])
+        z_mean, z_logvar, z = Lambda(switch, output_shape=(z_dim,), name='Switch_Layer')([img_encoder_output, vol_encoder_output])
 
     # Method2: Add latent vectors from different input with weights to generate the latent vectors
     elif train_mode == 'weighted_add':
@@ -70,28 +53,25 @@ def get_MMI(z_dim = 200, train_mode = 'switch', use_pretrain = True):
     MMI_decoder = get_voxel_decoder(z_dim)
     decoded_vol = MMI_decoder(z)
 
-    MMI = Model([img_input,vol_input], decoded_vol)
+    MMI = Model([img_input, vol_input], decoded_vol)
 
-    return { 'vol_inputs': vol_input,
-             'img_inputs': img_input,
-             'img_z_mean': img_encoder_output[0],
-             'vol_z_mean': vol_encoder_output[0],
-             'img_z_logvar': img_encoder_output[1],
-             'vol_z_logvar': vol_encoder_output[1],
-             'z_img': img_encoder_output[2],
-             'z_vol': vol_encoder_output[2],
-             'z_mean':z_mean,
-             'z_logvar': z_logvar,
-             'z': z,
-             'image_encoder': img_encoder,
-             'cnn_model': cnn_model,
-             'view_feature_aggregator': view_feature_aggregator,
-             'voxel_encoder': vol_encoder,
-             'MMI_encoder': MMI_encoder,
-             'MMI_decoder': MMI_decoder,
-             'MMI': MMI,
-             'outputs': decoded_vol,
-             'switch_test': switch_test
-             }
-
-
+    return {'vol_inputs': vol_input,
+            'img_inputs': img_input,
+            'img_z_mean': img_encoder_output[0],
+            'vol_z_mean': vol_encoder_output[0],
+            'img_z_logvar': img_encoder_output[1],
+            'vol_z_logvar': vol_encoder_output[1],
+            'z_img': img_encoder_output[2],
+            'z_vol': vol_encoder_output[2],
+            'z_mean': z_mean,
+            'z_logvar': z_logvar,
+            'z': z,
+            'image_encoder': img_encoder,
+            'image_embedding_model': image_embedding_model,
+            'view_feature_aggregator': view_feature_aggregator,
+            'voxel_encoder': vol_encoder,
+            'MMI_encoder': MMI_encoder,
+            'MMI_decoder': MMI_decoder,
+            'MMI': MMI,
+            'outputs': decoded_vol,
+            }

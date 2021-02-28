@@ -94,6 +94,10 @@ def parse_test_arguments(argv):
                         help='the path of weights in .h5 file.',
                         default=None)
 
+    parser.add_argument('--weights_dir', type=str,
+                        help='the dictionary that save all of weights of momels in .h5 file.',
+                        default=None)
+
     parser.add_argument('--input_form', type=str, choices=['voxel', 'image', 'both'],
                         help='The input form of test model', default=None)
 
