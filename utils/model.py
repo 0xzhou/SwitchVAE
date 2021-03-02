@@ -429,18 +429,18 @@ def get_resnet18():
 
     x = Add()([x, shortcut])
 
-    x = BatchNormalization(name='resnet_fc_bn1',
+    x = BatchNormalization(name='bn1',
                            **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(x)
     x = Activation('relu', name='relu1')(x)
 
     #x = AveragePooling2D((5,5), name='GRU_AP1')(x)
     x = Flatten(name='resnet_flatten1')(x)
     fc1 =Dense(units=4096, activation='elu',name='resnet_fc1')(x)
-    fc1 = BatchNormalization(name='resnet_fc_bn2',
+    fc1 = BatchNormalization(name='resnet_fc_bn1',
                            **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc1)
 
     fc2 = Dense(units=1024, name='resnet_fc2')(fc1)
-    fc2 = BatchNormalization(name='resnet_fc_bn3',
+    fc2 = BatchNormalization(name='resnet_fc_bn2',
                              **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc2)
 
 
