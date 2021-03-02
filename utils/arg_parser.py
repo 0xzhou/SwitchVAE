@@ -117,13 +117,17 @@ def parse_test_arguments(argv):
                         help='The directory to save the test data.',
                         default='../saved_models/')
 
-    parser.add_argument('--save_ori', type=bool,
+    parser.add_argument('--save_ori', type=int,
                         help='Save the original test data in the save_dir.',
-                        default=True)
+                        default=0)
 
-    parser.add_argument('--generate_img', type=bool,
+    parser.add_argument('--save_bin', type=int,
+                        help='Save the reconstructed data in .binvox',
+                        default=0)
+
+    parser.add_argument('--generate_img', type=int,
                         help='Generate images from .binvox files',
-                        default=True)
+                        default=0)
 
     parser.add_argument('--latent_vector_size', type=int,
                         help='The size of the embedding layers.',

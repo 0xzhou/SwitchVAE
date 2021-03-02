@@ -11,6 +11,7 @@ from utils import save_volume, data_IO, arg_parser, model
 from utils import globals as g
 from MMI import *
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
 session = tf.Session(config=ConFig)
@@ -26,7 +27,7 @@ def main(args):
     input_form = args.input_form
     z_dim = args.latent_vector_size
 
-    model_pdf_path = os.path.join(args.save_dir,'model_pdf_test')
+    model_pdf_path = os.path.join(args.save_dir, 'model_pdf_test')
     if not os.path.exists(model_pdf_path):
         os.makedirs(model_pdf_path)
 
@@ -36,10 +37,10 @@ def main(args):
         voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
 
         voxel_encoder = model.get_voxel_encoder(z_dim)
-        voxel_encoder.load_weights(weights_path, by_name=True)
+        voxel_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxEncoder.h5'), by_name=True)
 
         decoder = model.get_voxel_decoder(z_dim)
-        decoder.load_weights(weights_path, by_name=True)
+        decoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxDecoder.h5'), by_name=True)
 
         output = decoder(voxel_encoder(voxel_input)[0])
         voxel_vae = Model(voxel_input, output, name='Test_Voxel_VAE')
@@ -49,8 +50,8 @@ def main(args):
         voxels = data_IO.voxelPathList2matrix(voxel_file_list)
         reconstructions = voxel_vae.predict(voxels)
 
-        plot_model(voxel_encoder, to_file=os.path.join(model_pdf_path,'Voxel_Encoder.pdf'), show_shapes=True)
-        plot_model(decoder, to_file=os.path.join(model_pdf_path,'Encoder.pdf'), show_shapes=True)
+        plot_model(voxel_encoder, to_file=os.path.join(model_pdf_path, 'Voxel_Encoder.pdf'), show_shapes=True)
+        plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Encoder.pdf'), show_shapes=True)
         plot_model(voxel_vae, to_file=os.path.join(model_pdf_path, 'Voxel_VAE.pdf'), show_shapes=True)
 
 
@@ -59,10 +60,10 @@ def main(args):
 
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
         image_encoder = model.get_img_encoder(z_dim)['mvcnn_model']
-        image_encoder.load_weights(os.path.join(weights_dir,'image_encoder_weights.h5'), by_name=True)
+        image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
 
         decoder = model.get_voxel_decoder(z_dim)
-        decoder.load_weights(os.path.join(weights_dir,'decoder_weights.h5'), by_name=True)
+        decoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxDecoder.h5'), by_name=True)
 
         output = decoder(image_encoder(image_input)[0])
         image_vae = Model(image_input, output)
@@ -74,7 +75,7 @@ def main(args):
         images = data_IO.imagePathList2matrix(image_file_list, train=False)
         reconstructions = image_vae.predict(images)
 
-        plot_model(image_encoder, to_file=os.path.join(model_pdf_path,'Image_Encoder.pdf'), show_shapes=True)
+        plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'Image_Encoder.pdf'), show_shapes=True)
         plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Decoder.pdf'), show_shapes=True)
         plot_model(image_vae, to_file=os.path.join(model_pdf_path, 'Image_VAE.pdf'), show_shapes=True)
 
@@ -85,9 +86,8 @@ def main(args):
         voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
         image_encoder = model.get_img_encoder(z_dim)['mvcnn_model']
         voxel_encoder = model.get_voxel_encoder(z_dim)
-        image_encoder.load_weights(os.path.join(weights_dir, 'image_encoder_weights.h5'), by_name=True)
-        voxel_encoder.load_weights(os.path.join(weights_dir,'voxel_encoder_weights.h5'), by_name=True)
-
+        image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
+        voxel_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxEncoder.h5'), by_name=True)
 
         img_encoder_output = image_encoder(image_input)
         vol_encoder_output = voxel_encoder(voxel_input)
@@ -100,10 +100,10 @@ def main(args):
         z = Add(name='Weighted_Add_z')([img_z, vol_z])
 
         decoder = model.get_voxel_decoder(z_dim)
-        decoder.load_weights(os.path.join(weights_dir,'decoder_weights.h5'), by_name=True)
+        decoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxDecoder.h5'), by_name=True)
         output = decoder(z_mean)
 
-        mmi = Model([image_input,voxel_input],output)
+        mmi = Model([image_input, voxel_input], output)
 
         hash = os.listdir(image_data_path)
         image_file_list = [os.path.join(image_data_path, id) for id in hash]
@@ -113,7 +113,7 @@ def main(args):
         voxels = data_IO.voxelPathList2matrix(voxel_file_list)
         reconstructions = mmi.predict([images, voxels])
 
-        plot_model(image_encoder, to_file=os.path.join(model_pdf_path,'Image_Encoder.pdf'), show_shapes=True)
+        plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'Image_Encoder.pdf'), show_shapes=True)
         plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'Voxel_Encoder.pdf'), show_shapes=True)
         plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Decoder.pdf'), show_shapes=True)
         plot_model(mmi, to_file=os.path.join(model_pdf_path, 'MMI.pdf'), show_shapes=True)
@@ -134,10 +134,10 @@ def main(args):
             shutil.copy2(file, test_result_path)
 
     # save the generated objects files
-    save_volume.save_metrics(reconstructions,voxels,voxel_data_path,image_data_path,input_form,test_result_path)
+    save_volume.save_metrics(reconstructions, voxels, voxel_data_path, image_data_path, input_form, test_result_path)
     for i in range(reconstructions.shape[0]):
-        save_volume.save_binvox_output_2(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin=True,
-                                         save_img=save_the_img)
+        save_volume.save_binvox_output(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin=True,
+                                       save_img=save_the_img)
 
 
 if __name__ == '__main__':

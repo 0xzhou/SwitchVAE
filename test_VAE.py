@@ -16,29 +16,18 @@ def main(args):
 
     z_dim = args.latent_vector_size
 
-    weights_path = args.weights_file
-    test_result_path = args.save_dir + '/test/'
-    save_the_img = args.generate_img
-    save_the_ori = args.save_ori
-    test_data_path = args.test_data_dir
+    test_result_path = args.save_dir + '/test'
+    voxel_data_path = args.voxel_data_dir
 
     model = get_voxel_VAE(z_dim)
-
-    inputs = model['inputs']
-    outputs = model['outputs']
-    mu = model['mu']
-    logvar = model['logvar']
-    z = model['z']
-
-    encoder = model['encoder']
-    decoder = model['decoder']
     vae = model['vae']
+    vae.load_weights(args.weights_file)
 
-    # Set the weight files and test dataset path
-    vae.load_weights(weights_path)
-    data_test, hash = data_IO.voxeldataset2matrix(test_data_path)
+    hash = os.listdir(voxel_data_path)
+    voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
+    voxels = data_IO.voxelPathList2matrix(voxel_file_list)
 
-    reconstructions = vae.predict(data_test)
+    reconstructions = vae.predict(voxels)
     reconstructions[reconstructions > 0] = 1
     reconstructions[reconstructions < 0] = 0
 
@@ -46,15 +35,18 @@ def main(args):
         os.makedirs(test_result_path)
 
     # copy the original test dataset file
-    if save_the_ori:
-        for i in range(reconstructions.shape[0]):
-            shutil.copy2('./dataset/03001627_test_sub/'+hash[i]+'.binvox', test_result_path)
-            if save_the_img:
-                shutil.copy2('./dataset/03001627_test_sub_visualization/' + hash[i] + '.png', test_result_path)
+    if bool(args.save_ori):
+        up_level_path = os.path.split(voxel_data_path)[0]
+        ori_files_path = os.path.join(up_level_path, 'test_sub_visulization')
+        ori_files = os.listdir(ori_files_path)
+        for file in ori_files:
+            file = os.path.join(ori_files_path, file)
+            shutil.copy2(file, test_result_path)
 
     # save the generated objects files
+    save_volume.save_metrics(reconstructions, voxels, voxel_data_path, '', 'voxel', test_result_path)
     for i in range(reconstructions.shape[0]):
-        save_volume.save_binvox_output(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin= True, save_img= save_the_img)
+        save_volume.save_binvox_output(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin= bool(args.save_bin), save_img= bool(args.generate_img))
 
 if __name__ == '__main__':
     main(arg_parser.parse_test_arguments(sys.argv[1:]))

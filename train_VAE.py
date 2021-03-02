@@ -9,7 +9,7 @@ from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras import backend as K
 
 from VAE import *
-from utils import data_IO, arg_parser, save_train, custom_loss
+from utils import data_IO, arg_parser, save_train, custom_loss, metrics
 import sys, os
 
 learning_rate_1 = 0.0001
@@ -41,67 +41,63 @@ def main(args):
 
     # Model selection
     model = get_voxel_VAE(z_dim)
-
+    
     # Get model structures
     inputs = model['inputs']
     outputs = model['outputs']
-    mu = model['mu']
-    print("The shape of mu", mu.shape)
-    logvar = model['logvar']
-    print("The shape of logvar", logvar.shape)
+    z_mean = model['z_mean']
+    z_logvar = model['z_logvar']
     z = model['z']
-    print("The shape of z", z.shape)
 
     encoder = model['encoder']
     decoder = model['decoder']
     vae = model['vae']
 
     # kl-divergence
-    kl_loss_term = custom_loss.kl_loss(mu, logvar)
+    kl_loss = custom_loss.kl_loss(z_mean, z_logvar)
 
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(K.mean(custom_loss.weighted_binary_crossentropy(inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7))), 'float32')
 
     # Loss in betatc VAE
-    #z_edit = tf.expand_dims(z,0)
-    tc_loss_term , tc = custom_loss.tc_term(args.beta, z, mu, logvar)
-    tc_loss_term = tf.squeeze(tc_loss_term, axis=0)
+    tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, z_mean, z_logvar)
 
-    adam = Adam(lr=learning_rate)
+    IoU = metrics.get_IoU(inputs, outputs)
+
+    opt = Adam(lr=learning_rate)
 
     # Total loss
     if loss_type == 'bce':
         print('Using VAE model with only bce_loss')
         vae.add_loss(BCE_loss)
-        vae.compile(optimizer=adam, metrics=['accuracy'])
+        vae.compile(optimizer=opt)
+        vae.add_metric(IoU, name='IoU',aggregation='mean')
     elif loss_type == 'vae':
         print('Using VAE model')
-        #total_loss = BCE_loss + kl_loss_term
         vae.add_loss(BCE_loss)
-        vae.add_loss(kl_loss_term)
-        vae.compile(optimizer=adam, metrics=['accuracy'])
+        vae.add_loss(kl_loss)
+        vae.compile(optimizer=opt)
+        vae.add_metric(IoU, name='IoU', aggregation='mean')
         vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        vae.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
+        vae.add_metric(kl_loss, name='kl_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        #total_loss = BCE_loss + args.beta * kl_loss_term
         vae.add_loss(BCE_loss)
-        vae.add_loss(args.beta * kl_loss_term)
-        vae.compile(optimizer=adam, metrics=['accuracy'])
+        vae.add_loss(args.beta * kl_loss)
+        vae.compile(optimizer=opt)
+        vae.add_metric(IoU, name='IoU', aggregation='mean')
         vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        vae.add_metric(args.beta * kl_loss_term, name='beta_kl_loss', aggregation='mean')
+        vae.add_metric(args.beta * kl_loss, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        #total_loss = BCE_loss + kl_loss_term + tc_loss_term
         vae.add_loss(BCE_loss)
-        vae.add_loss(kl_loss_term)
-        vae.add_loss(tc_loss_term)
-        vae.compile(optimizer = adam, metrics = ['accuracy'])
+        vae.add_loss(kl_loss)
+        vae.add_loss(tc_loss)
+        vae.compile(optimizer = opt)
+        vae.add_metric(IoU, name='IoU', aggregation='mean')
         vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        vae.add_metric(kl_loss_term, name='kl_loss', aggregation='mean')
-        vae.add_metric(tc_loss_term, name='tc_loss', aggregation='mean')
-
-    #vae.add_loss(total_loss)
+        vae.add_metric(kl_loss, name='kl_loss', aggregation='mean')
+        vae.add_metric(tc_loss, name='tc_loss', aggregation='mean')
 
     plot_model(vae, to_file = 'vae.pdf', show_shapes = True)
     plot_model(encoder, to_file = os.path.join(train_data_path,'vae_encoder.pdf'), show_shapes = True)

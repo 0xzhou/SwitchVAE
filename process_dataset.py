@@ -1,7 +1,10 @@
 
 
-import os, shutil, sys
-from utils import arg_parser, save_volume
+import os, shutil, sys, glob
+import numpy as np
+from utils import arg_parser, save_volume,data_IO
+import matplotlib.pyplot as plt
+from utils import globals as g
 
 def create_dataset(category, voxel_dataset_path, image_dataset_path, split_scale, save_path, sub_num):
     '''
@@ -67,6 +70,21 @@ def copy_object_data(id_list, vol_path, img_path, vol_save_path, img_save_path):
         shutil.copytree(vol_original_path, vol_save_to)
         shutil.copytree(img_original_path, img_save_to)
 
+
+def create_img_from_modelnet(modelnet_path, save_path):
+    binvox_files = glob.glob(modelnet_path+"/*binvox")
+    names = [names.split('.') for names in os.listdir(modelnet_path) if names.endswith('.binvox')]
+
+    for i,file in enumerate(binvox_files):
+        array=data_IO.read_voxel_data(file)
+        array=np.int32(array)
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        ax.voxels(array.astype(np.bool), edgecolors='k')
+        plt.savefig(save_path + '/' + names[i][0] + '.png')
+        plt.close()
+
+
 def main(args):
     split_scale = tuple(args.split_scale)
     create_dataset(args.category, args.voxel_dataset_path, args.image_dataset_path,
@@ -74,6 +92,7 @@ def main(args):
 
 if __name__ == '__main__':
     main(arg_parser.parse_dataset_arguments(sys.argv[1:]))
+    #create_img_from_modelnet('/home/zmy/Datasets/test','/home/zmy/Datasets/test')
 
 
 

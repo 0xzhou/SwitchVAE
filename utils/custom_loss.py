@@ -24,6 +24,12 @@ def gaussian_log_density(samples, mean, logvar):
     return result
 
 
+def MSE(v1, v2):
+    loss = K.square(v1 - v2)
+    loss = K.mean(K.sum(loss, axis=1))
+    return loss
+
+
 def total_correlation(z, z_mean, z_logvar, prior='normal'):
     """Estimate of total correlation on a batch.
     We need to compute the expectation over a batch of: E_j [log(q(z(x_j))) -
@@ -62,4 +68,3 @@ def total_correlation(z, z_mean, z_logvar, prior='normal'):
         axis=1,
         keepdims=False)
     return tf.reduce_mean(log_qz - log_qz_product)
-

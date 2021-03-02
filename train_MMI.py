@@ -8,6 +8,7 @@ from MMI import *
 from utils import data_IO, arg_parser, save_train, custom_loss, metrics
 import sys, os, random
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
 session = tf.Session(config=ConFig)
@@ -17,7 +18,7 @@ def learning_rate_scheduler(epoch):
     if epoch < 50:
         return 0.0002
     else:
-        return 0.0002 * 0.96 ^ ((epoch - 50)/ 10)
+        return 0.0002 * 0.9 ** ((epoch - 50)/ 10)
 
 def main(args):
     # Hyperparameters
@@ -40,6 +41,8 @@ def main(args):
     # Get model structures
     vol_inputs = model['vol_inputs']
     outputs = model['outputs']
+    z_img = model['z_img']
+    z_val = model['z_vol']
     z_mean = model['z_mean']
     z_logvar = model['z_logvar']
     z = model['z']
@@ -62,6 +65,9 @@ def main(args):
     BCE_loss = K.cast(custom_loss.weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7)),
                       'float32')
 
+    # universal loss
+    uni_loss = custom_loss.MSE(z_img, z_val)
+
     # Loss in betatc VAE
     tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, z_mean, z_logvar)
 
@@ -74,34 +80,31 @@ def main(args):
 
     # Total loss
     if loss_type == 'bce':
-        # total_loss = BCE_loss
         MMI.add_loss(BCE_loss)
-        MMI.compile(optimizer=opt, metrics=['accuracy'])
+        MMI.compile(optimizer=opt)
     elif loss_type == 'vae':
         print('Using VAE model')
-        # total_loss = BCE_loss + kl_loss
         MMI.add_loss(BCE_loss)
+        MMI.add_loss(uni_loss)
         MMI.add_loss(kl_loss)
-        MMI.compile(optimizer=opt)
-        # MMI.add_metric(precision, name='precision', aggregation='mean')
+        MMI.compile(optimizer=opt, metrics=['accuracy'])
         MMI.add_metric(IoU, name='IoU', aggregation='mean')
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
+        MMI.add_metric(uni_loss, name='uni_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        # total_loss = BCE_loss + args.beta * kl_loss
         MMI.add_loss(BCE_loss)
         MMI.add_loss(args.beta * kl_loss)
-        MMI.compile(optimizer=opt, metrics=['accuracy'])
+        MMI.compile(optimizer=opt)
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(args.beta * kl_loss, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        # total_loss = BCE_loss + kl_loss + tc_loss
         MMI.add_loss(BCE_loss)
         MMI.add_loss(kl_loss)
         MMI.add_loss(tc_loss)
-        MMI.compile(optimizer=opt, metrics=['accuracy'])
+        MMI.compile(optimizer=opt)
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
         MMI.add_metric(tc_loss, name='tc_loss', aggregation='mean')
@@ -153,18 +156,18 @@ def main(args):
 
     MMI.fit_generator(
         generate_MMI_batch_data(voxel_dataset_path, image_dataset_path, batch_size),
-        # steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
-        steps_per_epoch=1,
+        #steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
+        steps_per_epoch=5,
         epochs=epoch_num,
         callbacks=train_callbacks
     )
 
-    MMI.save_weights(os.path.join(train_data_path, 'end_weights.h5'))
-    image_encoder.save_weights(os.path.join(train_data_path, 'image_encoder_weights.h5'))
-    image_embedding_model.save_weights(os.path.join(train_data_path, 'image_embedding_model_weights.h5'))
-    view_feature_aggregator.save_weights(os.path.join(train_data_path, 'view_feature_aggregator_weights.h5'))
-    voxel_encoder.save_weights(os.path.join(train_data_path, 'voxel_encoder_weights.h5'))
-    decoder.save_weights(os.path.join(train_data_path, 'decoder_weights.h5'))
+    image_embedding_model.save_weights(os.path.join(train_data_path, 'weightsEnd_viewFeatureEmbed.h5'))
+    view_feature_aggregator.save_weights(os.path.join(train_data_path, 'weightsEnd_viewFeatureAggre.h5'))
+    image_encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_imgEncoder.h5'))
+    voxel_encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxEncoder.h5'))
+    decoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxDecoder.h5'))
+    MMI.save_weights(os.path.join(train_data_path, 'weightsEnd_all.h5'))
 
 
 if __name__ == '__main__':
