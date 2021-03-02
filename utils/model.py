@@ -435,13 +435,14 @@ def get_resnet18():
     #x = AveragePooling2D((5,5), name='GRU_AP1')(x)
     x = Flatten(name='resnet_flatten1')(x)
     fc1 = BatchNormalization(name='resnet_bn1',
-                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(Dense(units=4096, activation='relu',name='resnet_fc1')(x))
-    fc2 = Dense(units=1024, activation='relu',name='resnet_fc2')(fc1)
+                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(
+        Dense(units=4096, activation='elu',name='resnet_fc1')(x))
+    fc2 = Dense(units=1024,name='resnet_fc2')(fc1)
 
 
     resnet18 = Model(inputs=img_input, outputs=fc2, name='ResNet18')
     #resnet18.load_weights('./utils/resnet18_imagenet_1000_no_top.h5', by_name=True)
-    plot_model(resnet18, to_file='./resnet18.pdf', show_shapes=True)
+    #plot_model(resnet18, to_file='./resnet18.pdf', show_shapes=True)
     #print(resnet18.summary())
 
     return  resnet18
