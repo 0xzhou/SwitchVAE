@@ -439,7 +439,7 @@ def get_resnet18():
     fc1 = BatchNormalization(name='resnet_fc_bn2',
                            **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc1)
 
-    fc2 = Dense(units=1024,activation='elu',name='resnet_fc2')(fc1)
+    fc2 = Dense(units=1024, name='resnet_fc2')(fc1)
     fc2 = BatchNormalization(name='resnet_fc_bn3',
                              **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc2)
 
