@@ -133,6 +133,9 @@ def parse_test_arguments(argv):
                         help='The size of the embedding layers.',
                         default=200)
 
+    parser.add_argument('--dataset', type=str, choices=['shapenet', 'modelnet'],
+                        help='the dataset we use ', default='shapenet')
+
     return parser.parse_args(argv)
 
 def parse_dataset_arguments(argv):

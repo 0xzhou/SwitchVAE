@@ -9,7 +9,9 @@ from utils import save_volume, data_IO, arg_parser, model
 
 from utils import model
 from tensorflow.keras.models import Model
+from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.layers import Input
+from sklearn.utils import shuffle
 
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
@@ -32,6 +34,7 @@ def main(args):
     voxel_data_path = args.voxel_data_dir
     image_data_path = args.image_data_dir
     input_form = args.input_form
+    dataset = args.dataset
 
     z_dim = args.latent_vector_size
 
@@ -44,30 +47,29 @@ def main(args):
         voxel_encoder = model.get_voxel_encoder(z_dim)
         decoder = model.get_voxel_decoder(z_dim)
         output = decoder(voxel_encoder(voxel_input))
-
         test_model = Model(voxel_input, output)
 
         test_model.load_weights(weights_path, by_name=True)
         voxel_encoder.load_weights(weights_path, by_name=True)
         decoder.load_weights(weights_path, by_name=True)
 
-        hash = os.listdir(voxel_data_path)
-        voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
-        voxels = data_IO.voxelPathList2matrix(voxel_file_list)
+        if dataset == 'shapenet':
+            hash = os.listdir(voxel_data_path)
+            voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
+            voxels = data_IO.voxelPathList2matrix(voxel_file_list)
 
-        # Get latent vector information
-        z_mean, z_logvar, z = voxel_encoder.predict(voxels)
-        epsilon = (z - z_mean) / np.exp(z_logvar)
-        print("The epsilon in sampling layer is", epsilon)
+            z_mean, z_logvar, z = voxel_encoder.predict(voxels)
+            latent_dict = latent2dict(hash, z_mean, z_logvar, z)
+            latent_dict_save_path = os.path.join(latent_save_path, 'latent_dict.pkl')
+            save_latent_dict = open(latent_dict_save_path, 'wb')
+            pickle.dump(latent_dict, save_latent_dict)
+            save_latent_dict.close()
+            reconstructions = test_model.predict(voxels)
 
-        # record latent vectors in dictionary and save it in .pkl form
-        latent_dict = latent2dict(hash, z_mean, z_logvar, z)
-        latent_dict_save_path = os.path.join(latent_save_path, 'latent_dict.pkl')
-        save_latent_dict = open(latent_dict_save_path, 'wb')
-        pickle.dump(latent_dict, save_latent_dict)
-        save_latent_dict.close()
-
-        reconstructions = test_model.predict(voxels)
+        elif dataset == 'modelnet':
+            voxel_data = np.load('.npz')
+            X_test, Y_test = shuffle(voxel_data['X_test'], voxel_data['Y_test'])
+            Y_test = to_categorical(Y_test)
 
     elif input_form == 'image':
         reconstructions_save_path = args.save_dir + '/analyse_image_input'
@@ -89,18 +91,6 @@ def main(args):
 
         # Get latent vector information
         z_mean, z_logvar, z = image_encoder.predict(images)
-        print("The 1st z_mean is:", z_mean[0])
-        print("The 10th z_mean is:", z_mean[9])
-        print("The 20th z_mean is:", z_mean[19])
-        print("The 30th z_mean is:", z_mean[29])
-        print("The 40th z_mean is:", z_mean[39])
-        print("The 1st latent vector is:", z[0])
-        print("The 10th latent vector is:", z[9])
-        print("The 20th latent vector is:", z[19])
-        print("The 30th latent vector is:", z[29])
-        print("The 40th latent vector is:", z[39])
-        epsilon = (z - z_mean) / np.exp(z_logvar)
-        #print("The epsilon in sampling layer is", epsilon)
 
         # record latent vectors in dictionary and save it in .pkl form
         latent_dict = latent2dict(hash, z_mean, z_logvar, z)

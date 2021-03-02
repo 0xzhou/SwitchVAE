@@ -6,6 +6,7 @@ from tensorflow.keras.layers import Input, BatchNormalization, Conv3D, Conv2D, M
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 from tensorflow.keras import backend as K
+from tensorflow.keras.utils import plot_model
 
 
 from utils import globals as g
@@ -256,12 +257,12 @@ def get_resnet18():
     # (stage, rep) = [(0, 3), (1, 4), (2, 6), (3, 3)]
     # stage = 0, block = 0
     # x = ResidualBlock(64, 0, 0, strides=(1,1), cut='post', attention=Attention)(x)
+
+    x = BatchNormalization(name='stage1_unit1_bn1',
+                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(x)
+    x = Activation('relu', name='stage1_unit1_relu1')(x)
     shortcut = Conv2D(64, (1, 1), name='stage1_unit1_sc', strides=(1, 1),
                       **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
-    x = BatchNormalization(name='stage1_unit1_bn1',
-                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(
-        x)
-    x = Activation('relu', name='stage1_unit1_relu1')(x)
     x = ZeroPadding2D(padding=(1, 1))(x)
     x = Conv2D(64, (3, 3), strides=(1, 1), name='stage1_unit1_conv1',
                **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
@@ -299,12 +300,12 @@ def get_resnet18():
 
     # stage = 1, block = 0
     # x = ResidualBlock(128, stage, block, strides=(2, 2), cut='post', attention=Attention)(x)
-    shortcut = Conv2D(128, (1, 1), name='stage2_unit1_sc', strides=(2, 2),
-                      **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
     x = BatchNormalization(name='stage2_unit1_bn1',
                            **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(
         x)
     x = Activation('relu', name='stage2_unit1_relu1')(x)
+    shortcut = Conv2D(128, (1, 1), name='stage2_unit1_sc', strides=(2, 2),
+                      **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
     x = ZeroPadding2D(padding=(1, 1))(x)
     x = Conv2D(128, (3, 3), strides=(2, 2), name='stage2_unit1_conv1',
                **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
@@ -341,12 +342,13 @@ def get_resnet18():
 
     # stage = 2, block = 0
     # x = ResidualBlock(256, stage, block, strides=(2, 2), cut='post', attention=Attention)(x)
-    shortcut = Conv2D(256, (1, 1), name='stage3_unit1_sc', strides=(2, 2),
-                      **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
+
     x = BatchNormalization(name='stage3_unit1_bn1',
                            **{'axis':-1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(
         x)
     x = Activation('relu', name='stage3_unit1_relu1')(x)
+    shortcut = Conv2D(256, (1, 1), name='stage3_unit1_sc', strides=(2, 2),
+                      **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
     x = ZeroPadding2D(padding=(1, 1))(x)
     x = Conv2D(256, (3, 3), strides=(2, 2), name='stage3_unit1_conv1',
                **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
@@ -384,12 +386,13 @@ def get_resnet18():
 
     # stage = 3, block = 0
     # x = ResidualBlock(512, stage, block, strides=(2, 2), cut='post', attention=Attention)(x)
-    shortcut = Conv2D(512, (1, 1), name='stage4_unit1_sc', strides=(2, 2),
-                      **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
+
     x = BatchNormalization(name='stage4_unit1_bn1',
                            **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(
         x)
     x = Activation('relu', name='stage4_unit1_relu1')(x)
+    shortcut = Conv2D(512, (1, 1), name='stage4_unit1_sc', strides=(2, 2),
+                      **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
     x = ZeroPadding2D(padding=(1, 1))(x)
     x = Conv2D(512, (3, 3), strides=(2, 2), name='stage4_unit1_conv1',
                **{'kernel_initializer': 'he_uniform', 'use_bias': False, 'padding': 'valid'})(x)
@@ -431,14 +434,14 @@ def get_resnet18():
 
     #x = AveragePooling2D((5,5), name='GRU_AP1')(x)
     x = Flatten(name='resnet_flatten1')(x)
-    x = BatchNormalization(name='resnet_bn1',
-                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(Dense(units=4096, name='resnet_fc1')(x))
-    x = Dense(units=1024, name='resnet_fc2')(x)
+    fc1 = BatchNormalization(name='resnet_bn1',
+                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(Dense(units=4096, activation='relu',name='resnet_fc1')(x))
+    fc2 = Dense(units=1024, activation='relu',name='resnet_fc2')(fc1)
 
 
-    resnet18 = Model(inputs=img_input, outputs=x, name='ResNet18')
+    resnet18 = Model(inputs=img_input, outputs=fc2, name='ResNet18')
     #resnet18.load_weights('./utils/resnet18_imagenet_1000_no_top.h5', by_name=True)
-    #plot_model(resnet18, to_file='./resnet18.pdf', show_shapes=True)
+    plot_model(resnet18, to_file='./resnet18.pdf', show_shapes=True)
     #print(resnet18.summary())
 
     return  resnet18
