@@ -1,6 +1,6 @@
 
 # ------------ Constant Variables for Models ----------------------------
-NUM_VIEWS = 2
+NUM_VIEWS = 8
 IMAGE_SHAPE = (137, 137, 3)
 VIEWS_IMAGE_SHAPE = (24, 137, 137, 3)
 VIEWS_IMAGE_SHAPE_2 = (12, 137,137,3)

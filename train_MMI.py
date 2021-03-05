@@ -79,6 +79,7 @@ def main(args):
     # Add metrics
     #precision = metrics.get_precision(vol_inputs, outputs)
     IoU = metrics.get_IoU(vol_inputs, outputs)
+    accuracy = metrics.get_accuracy(vol_inputs, outputs)
 
     # opt = Adam(lr=learning_rate)
     opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
@@ -94,6 +95,7 @@ def main(args):
         MMI.add_loss(kl_loss)
         MMI.compile(optimizer=opt, metrics=['accuracy'])
         MMI.add_metric(IoU, name='IoU', aggregation='mean')
+        MMI.add_metric(accuracy, name='accuracy', aggregation='mean')
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
         MMI.add_metric(uni_loss, name='uni_loss', aggregation='mean')

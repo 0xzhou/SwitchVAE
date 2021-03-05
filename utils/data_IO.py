@@ -126,6 +126,7 @@ def multicat_path_list(processed_dataset_path, category_list, use_mode='train'):
 
 
 def objectIdList2matrix(objectIdlist, dataset, train_or_test):
+    import matplotlib.pyplot as plt
     size = len(objectIdlist)
     batch_image_array = np.zeros((size, 12) + g.IMAGE_SHAPE, dtype=np.float32)
     for i, id in enumerate(objectIdlist):
@@ -133,10 +134,8 @@ def objectIdList2matrix(objectIdlist, dataset, train_or_test):
         view_image_array = np.zeros((12,) + g.IMAGE_SHAPE, dtype=np.float32)
         for view in range(12):
             image_file = os.path.join(dataset, category, train_or_test, id + '.obj.shaded_v' + str(view + 1).zfill(3) + '.png')
-            img_array=preprocess_modelnet_img(image_file, BG_rgb=[240,240,240], aim_size=(137,137))
-
+            img_array=preprocess_modelnet_img(image_file, BG_rgb=[255,255,255], aim_size=(137,137))
             view_image_array[view] = img_array
         batch_image_array[i]=view_image_array
-
     return batch_image_array
 

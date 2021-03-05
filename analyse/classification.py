@@ -7,9 +7,9 @@ from sklearn.utils import shuffle
 if __name__ == '__main__':
 
     latent_key = ['z', 'z_mean']
-    svm_kernel = ['linear', 'rbf']
-    latent_file_dirs = ['/home/zmy/Downloads/OneDrive-2021-03-04/modelnet10_image_latent_240BG.npz',
-                    '/home/zmy/Downloads/OneDrive-2021-03-04/modelnet40_image_latent_240BG.npz']
+    svm_kernel = ['rbf', 'linear', ]
+    latent_file_dirs = ['/home/zmy/Downloads/MMImodel/modelnet10_voxel_latent.npz',
+                    '/home/zmy/Downloads/MMImodel/modelnet40_voxel_latent.npz']
     save_dir = '/home/zmy/Downloads/OneDrive-2021-03-04/'
 
     for latent_file in latent_file_dirs:
@@ -34,3 +34,4 @@ if __name__ == '__main__':
                 print("SVM kernel:", kernel)
                 print("Train Accuracy:", train_accuracy)
                 print("Test Accuracy:", test_accuracy)
+                print('-----------------------------------')

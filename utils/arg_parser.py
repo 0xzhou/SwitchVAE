@@ -146,6 +146,15 @@ def parse_test_arguments(argv):
     parser.add_argument('--generation', type=int,
                         help='Generate object in testing, 1: True, 0: False', default=0)
 
+    parser.add_argument('--voxel_npz', type=str,
+                        help='the path of voxel data in .npz form',
+                        default=None)
+
+    parser.add_argument('--image_npz', type=str,
+                        help='the path of image data(only object index) in .npz form',
+                        default=None)
+
+
     return parser.parse_args(argv)
 
 def parse_dataset_arguments(argv):

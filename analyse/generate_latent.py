@@ -8,7 +8,6 @@ from utils import save_volume, data_IO, arg_parser, model
 
 from utils import model
 from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.layers import Input
 from sklearn.utils import shuffle
 
@@ -66,7 +65,7 @@ def main(args):
         elif dataset == 'modelnet':
             X = {'train_z_mean': [], 'train_z': [], 'test_z_mean':[], 'test_z':[]}
             y = {'train_label': [], 'test_label': []}
-            voxel_data = np.load('/home/zmy/Datasets/modelnet40.npz')
+            voxel_data = np.load(args.voxel_npz)
             train_voxels, train_labels = shuffle(voxel_data['X_train'], voxel_data['y_train'])
             test_voxels, test_labels = shuffle(voxel_data['X_test'], voxel_data['y_test'])
             train_batch = int(train_voxels.shape[0] / args.batch_size)
@@ -131,7 +130,7 @@ def main(args):
         elif dataset == 'modelnet':
             X = {'train_z_mean': [], 'train_z': [], 'test_z_mean': [], 'test_z': []}
             y = {'train_label': [], 'test_label': []}
-            object_id_data = np.load('/home/zmy/Datasets/modelnet40_image.npz')
+            object_id_data = np.load(args.image_npz)
             modelnet_image_path = '/home/zmy/Datasets/ModelNet40_images/modelnet40_images_new_12x'
             train_images_id, train_labels = shuffle(object_id_data['X_train'], object_id_data['y_train'])
             test_images_id, test_labels = shuffle(object_id_data['X_test'], object_id_data['y_test'])
@@ -163,7 +162,7 @@ def main(args):
                     X['test_z'].append(test_z[j])
                     y['test_label'].append(test_batch_labels[j])
 
-            np.savez_compressed(os.path.join(args.save_dir, 'modelnet40_image_latent_240BG.npz'),
+            np.savez_compressed(os.path.join(args.save_dir, 'modelnet40_image_latent_255BG.npz'),
                                 train_z=X['train_z'],
                                 train_z_mean=X['train_z_mean'],
                                 train_labels=y['train_label'],

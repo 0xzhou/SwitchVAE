@@ -438,7 +438,7 @@ def get_resnet18():
     x = Flatten(name='resnet_flatten1')(x)
     fc1 =Dense(units=4096, activation='elu',name='resnet_fc1')(x)
     fc1 = BatchNormalization(name='resnet_fc_bn1',
-                           **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc1)
+                          **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc1)
 
     fc2 = Dense(units=1024, name='resnet_fc2')(fc1)
     fc2 = BatchNormalization(name='resnet_fc_bn2',
