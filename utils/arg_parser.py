@@ -32,7 +32,7 @@ def parse_train_arguments(argv):
 
     parser.add_argument('--latent_vector_size', type=int,
                         help='The size of the embedding layers.',
-                        default=200)
+                        default=128)
 
     parser.add_argument('--val_split', type=float,
                         help='The percentage of generated_data in the validation set',
@@ -85,6 +85,10 @@ def parse_train_arguments(argv):
                         help='Use multi-processing for dit generator during training.',
                         default=True)
 
+    parser.add_argument('--processed_dataset', type=str,
+                        help='The processed dataset contains image and voxel data for all classes',
+                        default=None)
+
     return parser.parse_args(argv)
 
 def parse_test_arguments(argv):
@@ -131,10 +135,16 @@ def parse_test_arguments(argv):
 
     parser.add_argument('--latent_vector_size', type=int,
                         help='The size of the embedding layers.',
-                        default=200)
+                        default=128)
 
     parser.add_argument('--dataset', type=str, choices=['shapenet', 'modelnet'],
                         help='the dataset we use ', default='shapenet')
+
+    parser.add_argument('--batch_size', type=int,
+                        help='the size of mini_batch', default=32)
+
+    parser.add_argument('--generation', type=int,
+                        help='Generate object in testing, 1: True, 0: False', default=0)
 
     return parser.parse_args(argv)
 
@@ -142,8 +152,12 @@ def parse_dataset_arguments(argv):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--category', type=str,
-                        help='the category in the dataset, normally is a 8-digits numbber',
+    parser.add_argument('--category_list', nargs='+',
+                        help='the category list in the dataset,each element in the list is a 8-digits string',
+                        default=None)
+
+    parser.add_argument('--original_dataset_path', type=str,
+                        help='the path of original dataset',
                         default=None)
 
     parser.add_argument('--voxel_dataset_path', type=str,

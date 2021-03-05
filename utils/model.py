@@ -197,7 +197,8 @@ def get_img_encoder(z_dim=200):
     input: Batch x Viewns x Width x Height x Channels (tensor)
     """
     # input placeholder with shape (None, 24, 137, 137, 3)
-    inputs = Input(shape=g.VIEWS_IMAGE_SHAPE, name='MVCNN_input')
+    #inputs = Input(shape=g.VIEWS_IMAGE_SHAPE, name='MVCNN_input')
+    inputs = Input(shape=g.VIEWS_IMAGE_SHAPE_2, name='MVCNN_input')
 
     # split inputs into views(a list), which has num_views elements, each element of views has shape (None, 137, 137, 3)
     views = Lambda(_split_inputs, name='MVCNN_split')(inputs)
@@ -234,9 +235,9 @@ def get_img_encoder(z_dim=200):
             view_features = Lambda(_view_features, name='MVCNN_view_features')(view_feature_list)
             z_mean, z_logvar, z = views_feature_aggregator(view_features)
 
-    mvcnn_model = keras.Model(inputs=inputs, outputs=[z_mean, z_logvar, z], name='Image_MVCNN_VAE')
+    image_encoder = keras.Model(inputs=inputs, outputs=[z_mean, z_logvar, z], name='Image_MVCNN_VAE')
 
-    return { 'mvcnn_model': mvcnn_model,
+    return { 'image_encoder': image_encoder,
              'image_embedding_model': image_embedding_model,
              'view_feature_aggregator': views_feature_aggregator}
 

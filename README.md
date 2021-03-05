@@ -12,27 +12,41 @@ pillow 8.0.1
 
 ### Dataset
 
-We use the [ShapeNetCore](https://www.shapenet.org/download/shapenetcore) dataset, for space consideration, in this repository we only provide the **volumetric data** in .binvox files of **chair class(03001627)** for training and testing VAE, which is under `./dataset`. 
+We use the [ShapeNetCore](https://www.shapenet.org/download/shapenetcore) dataset for training and use ModelNet for testing.
 
-If you want to train with many other different type of objects, the complete dataset is available in website above, it requires an account to download them. Besides, Stanford university also provide the same dataset under: https://cvgl.stanford.edu/data2/, which is convenient to download. The volumetric data is under `ShapeNetVox32.tgz` and the image data is under `ShapeNetRendering.tgz`.
+- ShapeNetCore
+
+The complete dataset is available in website above, it requires an account to download them. Besides, Stanford university also provide the same dataset under: https://cvgl.stanford.edu/data2/, which is convenient to download. The volumetric data is under `ShapeNetVox32.tgz` and the image data is under `ShapeNetRendering.tgz`.
+
+Use our script to process the dataset, which makes the dataset compatible with training and test. We design the processed dataset, The process dataset of one category will contains voxel/image folders, each folder is divided into 3 subsets respectively: `train`, `test` and `test_sub`, we make a special design for in voxel folder, `test_sub_visualization` is added for visualize the models in `test_sub`.
+
+Set the `process_dataset.sh` with your local dataset path after downloading.
+
+Process the dataset:
+
+```shell
+sh process_dataset.sh
+```
+
+**Attention:** Processing the whole dataset takes about 2 hours.
+
+- ModelNet
+
+The complete dataset is available under: http://modelnet.cs.princeton.edu/, which contains **ModelNet10** and **ModelNet40**.
+
+ The original dataset contains only 3D objects in `.off` form, **voxelization** is needed for training in MMI-VAE. Use the following command to transform the `.off` files to `.binvox` files.
+
+```
+for f in ModelNet10/*/*/*.off; do binvox -cb -pb -e -c -d 32 $f; done
+```
 
 
 
-- Volumetric data
 
-There are 6778 elements in the chair class, the full object is available under `/dataset/03001627`. 
 
-We also divide it into a train set and a test set, the `/dataset/03001627_train` folder consists of 5778 elements and the`/dataset/03001627_test` folder consists of 1000 elements.
 
-In testing, if you want to generate images of the reconstructed objects at the same time, **it is recommended** to use this `/dataset/03001627_test_sub`, which consists of 100 objects from the 1000 test objects, because we use CPU to generate images, it takes about 10 minutes to test and generate images on 100 objects.
 
-In `03001627_test_sub_visualization`, you could see the ground truth image of the 100 test objects.
-
-- Image data
-
-If you want to train the MMI-VAE model, both volumetric data and image data are required. You should download the dataset and process it with our script, to make the dataset compatible with training.
-
-Set the path of volumetric data and image data in `process_dataset.sh`, the original dataset of one category will be  divided into 3 subsets respectively: `train`, `test` and `test_sub`. There is also other configurations you can set, like split scale etc, the details are in the script.
+There is also other configurations you can set, like split scale etc, the details are in the script.
 
 Process the dataset:
 

@@ -91,18 +91,52 @@ def preprocess_img(im, train=True):
     im = im / 255.
     return im
 
+def preprocess_modelnet_img(img, BG_rgb=[255,255,255], aim_size=(137,137)):
+    image = Image.open(img)
+    image = image.resize(aim_size, Image.BICUBIC)
+    image = np.asarray(image)
+    scr_img = [0, 0, 0]
+    r_img = image[:, :, 0].copy()
+    g_img = image[:, :, 1].copy()
+    b_img = image[:, :, 2].copy()
+    img = r_img + g_img + b_img
+    value_const = scr_img[0] + scr_img[1] + scr_img[2]
+    r_img[img == value_const] = BG_rgb[0]
+    g_img[img == value_const] = BG_rgb[1]
+    b_img[img == value_const] = BG_rgb[2]
+    img = np.dstack([r_img, g_img, b_img])
+    img = img/255
+    return img
 
-def test():
-    import matplotlib.pyplot as plt
-    im = Image.open(
-        '/home/zmy/Datasets/3d-r2n2-datasat/04379243_processed/image/test/1a9bb6a5cf448d75e6fd255f2d77a585/rendering/00.png')
-    im = np.asarray(im)
-    print("The shape of image array", im.shape)
-    imt = preprocess_img(im)
-    print("The shape of processed image array", imt.shape)
-    plt.imshow(imt)
-    plt.show()
+def multicat_path_list(processed_dataset_path, category_list, use_mode='train'):
+    voxel_path_list=[]
+    image_path_list=[]
+    multicat_hash_id = []
+    for category in category_list:
+        category_voxel_train_path = os.path.join(processed_dataset_path, category, 'voxel', use_mode )
+        category_image_train_path = os.path.join(processed_dataset_path, category, 'image', use_mode)
+        hash_id = os.listdir(category_voxel_train_path)
+        category_hash_id = [category+'_'+id for id in hash_id]
+        multicat_hash_id += category_hash_id
+
+        voxel_path_list += [os.path.join(category_voxel_train_path,id) for id in hash_id]
+        image_path_list += [os.path.join(category_image_train_path,id) for id in hash_id]
+
+    return voxel_path_list,image_path_list,multicat_hash_id
 
 
-if __name__ == '__main__':
-    test()
+def objectIdList2matrix(objectIdlist, dataset, train_or_test):
+    size = len(objectIdlist)
+    batch_image_array = np.zeros((size, 12) + g.IMAGE_SHAPE, dtype=np.float32)
+    for i, id in enumerate(objectIdlist):
+        category = id[:-5]  # return the category
+        view_image_array = np.zeros((12,) + g.IMAGE_SHAPE, dtype=np.float32)
+        for view in range(12):
+            image_file = os.path.join(dataset, category, train_or_test, id + '.obj.shaded_v' + str(view + 1).zfill(3) + '.png')
+            img_array=preprocess_modelnet_img(image_file, BG_rgb=[240,240,240], aim_size=(137,137))
+
+            view_image_array[view] = img_array
+        batch_image_array[i]=view_image_array
+
+    return batch_image_array
+

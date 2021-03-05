@@ -18,7 +18,7 @@ def get_MMI(z_dim=200, train_mode='switch', use_pretrain=True):
     img_input = Input(shape=g.VIEWS_IMAGE_SHAPE, name='Image_Input')
     vol_input = Input(shape=g.VOXEL_INPUT_SHAPE, name='Voxel_Input')
 
-    img_encoder = get_img_encoder(z_dim)['mvcnn_model']
+    img_encoder = get_img_encoder(z_dim)['image_encoder']
     image_embedding_model = get_img_encoder(z_dim)['image_embedding_model']
     view_feature_aggregator = get_img_encoder(z_dim)['view_feature_aggregator']
     vol_encoder = get_voxel_encoder(z_dim)
