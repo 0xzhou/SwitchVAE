@@ -1,8 +1,8 @@
 python generate_latent.py \
           --latent_vector_size 128 \
-          --weights_dir /home/zmy/Downloads/MMImodel \
-          --input_form 'image' \
-          --save_dir /home/zmy/Downloads/MMImodel \
+          --weights_dir /home/zmy/Downloads/bothTrain_lessFC_uniLoss2 \
+          --input_form 'voxel' \
+          --save_dir /home/zmy/Downloads/bothTrain_lessFC_uniLoss2\
           --dataset 'modelnet' \
           --voxel_npz /home/zmy/Datasets/modelnet10.npz \
           --image_npz /home/zmy/Datasets/modelnet40_image.npz \

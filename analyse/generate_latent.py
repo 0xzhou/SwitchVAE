@@ -162,7 +162,7 @@ def main(args):
                     X['test_z'].append(test_z[j])
                     y['test_label'].append(test_batch_labels[j])
 
-            np.savez_compressed(os.path.join(args.save_dir, 'modelnet40_image_latent_255BG.npz'),
+            np.savez_compressed(os.path.join(args.save_dir, 'modelnet40_image_latent_1BG.npz'),
                                 train_z=X['train_z'],
                                 train_z_mean=X['train_z_mean'],
                                 train_labels=y['train_label'],

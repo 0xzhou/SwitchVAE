@@ -1,25 +1,26 @@
 
-from sklearn import svm
+from sklearn import svm, manifold
 import numpy as np
 from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
 
     latent_key = ['z', 'z_mean']
     svm_kernel = ['rbf', 'linear', ]
-    latent_file_dirs = ['/home/zmy/Downloads/MMImodel/modelnet10_voxel_latent.npz',
-                    '/home/zmy/Downloads/MMImodel/modelnet40_voxel_latent.npz']
+    latent_file_dirs = ['/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/modelnet10_voxel_latent.npz',
+                    '/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/modelnet40_voxel_latent.npz']
     save_dir = '/home/zmy/Downloads/OneDrive-2021-03-04/'
 
-    for latent_file in latent_file_dirs:
+    for i, latent_file in enumerate(latent_file_dirs):
         for key in latent_key:
             for kernel in svm_kernel:
 
                 latent_features_data = np.load(latent_file)
                 train_latent_features, train_labels = shuffle(latent_features_data['train'+'_'+key], latent_features_data['train_labels'])
                 test_latent_features, test_labels = shuffle(latent_features_data['test'+'_'+key], latent_features_data['test_labels'])
-                train_latent_features[:,:] = np.nan_to_num(train_latent_features[:,:])
+                #train_latent_features[:,:] = np.nan_to_num(train_latent_features[:,:])
 
                 classifier = svm.SVC(kernel=kernel)
                 classifier.fit(train_latent_features, train_labels)
@@ -35,3 +36,14 @@ if __name__ == '__main__':
                 print("Train Accuracy:", train_accuracy)
                 print("Test Accuracy:", test_accuracy)
                 print('-----------------------------------')
+
+                tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
+                Y = tsne.fit_transform(train_latent_features)
+                ax = plt.figure(figsize=(8, 8), facecolor='white')
+                plt.scatter(Y[:, 0], Y[:, 1], c=train_labels[:], edgecolors='none',
+                            cmap='rainbow')
+                plt.xticks([])
+                plt.yticks([])
+                plt.axis('tight')
+                #plt.show()
+                plt.savefig('/home/zmy/Downloads/bothTrain_lessFC_uniLoss2/vol_latent_tsne_rainbow'+str(i)+'_'+key+'_'+kernel+'.png')

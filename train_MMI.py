@@ -56,10 +56,6 @@ def main(args):
     decoder = model['MMI_decoder']
     MMI = model['MMI']
 
-    print(image_encoder.summary())
-    print(image_embedding_model.summary())
-    print(view_feature_aggregator.summary())
-
     # Loss functions
     loss_type = args.loss
 
