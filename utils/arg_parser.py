@@ -89,6 +89,15 @@ def parse_train_arguments(argv):
                         help='The processed dataset contains image and voxel data for all classes',
                         default=None)
 
+    parser.add_argument('--modelnet_voxel_dataset', type=str,
+                        help='The modelnet dataset contains voxel data for all classes',
+                        default=None)
+
+    parser.add_argument('--modelnet_image_dataset', type=str,
+                        help='The modelnet dataset contains image data for all classes',
+                        default=None)
+
+
     return parser.parse_args(argv)
 
 def parse_test_arguments(argv):

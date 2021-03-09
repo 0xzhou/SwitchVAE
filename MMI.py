@@ -15,7 +15,8 @@ def switch(args):
 
 
 def get_MMI(z_dim=200, train_mode='switch', use_pretrain=True):
-    img_input = Input(shape=g.VIEWS_IMAGE_SHAPE, name='Image_Input')
+    #img_input = Input(shape=g.VIEWS_IMAGE_SHAPE, name='Image_Input')
+    img_input = Input(shape=g.VIEWS_IMAGE_SHAPE_2, name='Image_Input')
     vol_input = Input(shape=g.VOXEL_INPUT_SHAPE, name='Voxel_Input')
 
     img_encoder = get_img_encoder(z_dim)['image_encoder']

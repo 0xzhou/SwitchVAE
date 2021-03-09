@@ -18,9 +18,9 @@ session = tf.Session(config=ConFig)
 
 
 def main(args):
-    weights_path = args.weights_file
     weights_dir = args.weights_dir
     save_the_img = args.generate_img
+    save_bin = args.save_bin
     save_the_ori = args.save_ori
     voxel_data_path = args.voxel_data_dir
     image_data_path = args.image_data_dir
@@ -45,6 +45,7 @@ def main(args):
         output = decoder(voxel_encoder(voxel_input)[0])
         voxel_vae = Model(voxel_input, output, name='Test_Voxel_VAE')
 
+
         hash = os.listdir(voxel_data_path)
         voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
         voxels = data_IO.voxelPathList2matrix(voxel_file_list)
@@ -59,7 +60,7 @@ def main(args):
         test_result_path = args.save_dir + '/test_sub_image_input'
 
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
-        image_encoder = model.get_img_encoder(z_dim)['mvcnn_model']
+        image_encoder = model.get_img_encoder(z_dim)['image_encoder']
         image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
 
         decoder = model.get_voxel_decoder(z_dim)
@@ -136,7 +137,7 @@ def main(args):
     # save the generated objects files
     save_volume.save_metrics(reconstructions, voxels, voxel_data_path, image_data_path, input_form, test_result_path)
     for i in range(reconstructions.shape[0]):
-        save_volume.save_binvox_output(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin=True,
+        save_volume.save_binvox_output(reconstructions[i, 0, :], hash[i], test_result_path, '_gen', save_bin=save_bin,
                                        save_img=save_the_img)
 
 

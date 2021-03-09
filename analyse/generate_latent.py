@@ -10,6 +10,7 @@ from utils import model
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
 from sklearn.utils import shuffle
+import time
 
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
@@ -178,10 +179,16 @@ def main(args):
         if not os.path.exists(reconstructions_save_path):
             os.makedirs(reconstructions_save_path)
 
+        save_volume.save_metrics(reconstructions, voxels, voxel_data_path, image_data_path, input_form, reconstructions_save_path)
+
         for i in range(reconstructions.shape[0]):
             save_volume.save_binvox_output_2(reconstructions[i, 0, :], hash[i], reconstructions_save_path, '_gen',
                                              save_bin=True, save_img=save_the_img)
 
 
 if __name__ == '__main__':
+    start = time.time()
     main(arg_parser.parse_test_arguments(sys.argv[1:]))
+    end = time.time()
+    interval = int(end) - int(start)
+    print("The time spent on seconds: ", interval)

@@ -57,7 +57,7 @@ def save_metrics(predictions, gt, voxelPath,imagePath,inputform,output_dir):
     metrics_file = os.path.join(output_dir, 'metrics.txt')
     metrics_file = open(metrics_file, 'w')
 
-    precision, IoU, recall =metrics.evaluate_voxel_prediction(predictions, gt, threshold=1)
+    precision, IoU, recall, accuracy =metrics.evaluate_voxel_prediction(predictions, gt, threshold=1)
     metrics_file.write(voxelPath + '\n')
     metrics_file.write(imagePath + '\n')
     metrics_file.write(inputform + '\n')
@@ -65,6 +65,7 @@ def save_metrics(predictions, gt, voxelPath,imagePath,inputform,output_dir):
     metrics_file.write("Precision:" + str(precision) + '\n')
     metrics_file.write("IoU:" + str(IoU) + '\n')
     metrics_file.write("Recall:" + str(recall) + '\n')
+    metrics_file.write("Accuracy:" + str(accuracy) + '\n')
     metrics_file.close()
 
     # for i in range(predictions.shape[0]):

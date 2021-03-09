@@ -15,7 +15,6 @@ def read_voxel_data(model_path):
 def write_binvox_file(pred, filename):
     with open(filename, 'w') as f:
         voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xzy')
-        #voxel = binvox_rw.Voxels(pred, [32, 32, 32], [0, 0, 0], 1, 'xyz')
         binvox_rw.write(voxel, f)
         f.close()
 
@@ -82,16 +81,14 @@ def preprocess_img(im, train=True):
     im = add_random_color_background(im, g.TRAIN_NO_BG_COLOR_RANGE if train else g.TEST_NO_BG_COLOR_RANGE)
 
     # # If the image has alpha channel, remove it.
-    im_rgb = np.array(im)[:, :, :3].astype(np.float32)
+    #im_rgb = np.array(im)[:, :, :3].astype(np.float32)
     # if train:
     #     t_im = image_transform(im_rgb, cfg.TRAIN.PAD_X, cfg.TRAIN.PAD_Y)
     # else:
     #     t_im = crop_center(im_rgb, cfg.CONST.IMG_H, cfg.CONST.IMG_W)
     # Scale image
-    #im = im / 255.
-    im = im_rgb / 255.
-    # plt.imshow(im)
-    # plt.show()
+    im = im / 255.
+
     return im
 
 def preprocess_modelnet_img(img, BG_rgb=[255,255,255], aim_size=(137,137)):
@@ -106,7 +103,7 @@ def preprocess_modelnet_img(img, BG_rgb=[255,255,255], aim_size=(137,137)):
     g_img[pixel_value == 0] = BG_rgb[1]
     b_img[pixel_value == 0] = BG_rgb[2]
     img = np.dstack([r_img, g_img, b_img])
-    #img = img/255.
+    img = img/255.
     return img
 
 
@@ -115,7 +112,7 @@ def multicat_path_list(processed_dataset_path, category_list, use_mode='train'):
     image_path_list=[]
     multicat_hash_id = []
     for category in category_list:
-        category_voxel_train_path = os.path.join(processed_dataset_path, category, 'voxel', use_mode )
+        category_voxel_train_path = os.path.join(processed_dataset_path, category, 'voxel', use_mode)
         category_image_train_path = os.path.join(processed_dataset_path, category, 'image', use_mode)
         hash_id = os.listdir(category_voxel_train_path)
         category_hash_id = [category+'_'+id for id in hash_id]
@@ -125,7 +122,6 @@ def multicat_path_list(processed_dataset_path, category_list, use_mode='train'):
         image_path_list += [os.path.join(category_image_train_path,id) for id in hash_id]
 
     return voxel_path_list,image_path_list,multicat_hash_id
-
 
 def objectIdList2matrix(objectIdlist, dataset, train_or_test):
     size = len(objectIdlist)
@@ -144,4 +140,19 @@ def objectIdList2matrix(objectIdlist, dataset, train_or_test):
         batch_image_array[i]=view_image_array
 
     return batch_image_array
+
+def generate_modelnet_idList(voxel_dataset, category_list, use_mode='train'):
+
+    multicat_id = []
+    for category in category_list:
+        category_voxel_train_path = os.path.join(voxel_dataset, category, use_mode)
+        filenames = os.listdir(category_voxel_train_path)
+        category_id = [filename.split('.')[0] for filename in filenames if filename.endswith('.binvox')]
+        multicat_id += category_id
+    return multicat_id
+
+
+
+
+
 

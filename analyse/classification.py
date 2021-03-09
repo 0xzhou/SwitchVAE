@@ -9,8 +9,8 @@ if __name__ == '__main__':
 
     latent_key = ['z', 'z_mean']
     svm_kernel = ['rbf', 'linear', ]
-    latent_file_dirs = ['/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/modelnet10_voxel_latent.npz',
-                    '/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/modelnet40_voxel_latent.npz']
+    latent_file_dirs = ['/home/zmy/Downloads/allCategory_uniLoss2/modelnet10_image_latent_1BG.npz',
+                    '/home/zmy/Downloads/allCategory_uniLoss2/modelnet40_image_latent_1BG.npz']
     save_dir = '/home/zmy/Downloads/OneDrive-2021-03-04/'
 
     for i, latent_file in enumerate(latent_file_dirs):
@@ -41,9 +41,9 @@ if __name__ == '__main__':
                 Y = tsne.fit_transform(train_latent_features)
                 ax = plt.figure(figsize=(8, 8), facecolor='white')
                 plt.scatter(Y[:, 0], Y[:, 1], c=train_labels[:], edgecolors='none',
-                            cmap='rainbow')
+                            cmap='terrain')
                 plt.xticks([])
                 plt.yticks([])
                 plt.axis('tight')
                 #plt.show()
-                plt.savefig('/home/zmy/Downloads/bothTrain_lessFC_uniLoss2/vol_latent_tsne_rainbow'+str(i)+'_'+key+'_'+kernel+'.png')
+                plt.savefig('/home/zmy/Downloads/allCategory_uniLoss2/img_latent_tsne'+str(i)+'_'+key+'_'+kernel+'_BG1'+'.png')

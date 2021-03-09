@@ -13,8 +13,10 @@ def evaluate_voxel_prediction(predictions, gt, threshold=1):
     predtions_occupy = predictions >= threshold
     gt = gt >= 1
     inverse_gt = gt < 1
+    inverse_predtions_occupy = predictions <1
 
     intersection = np.sum(np.logical_and(predtions_occupy, gt)) # true positive
+    inverse_intersection = np.sum(np.logical_and(inverse_predtions_occupy, inverse_gt)) # true negative
     union = np.sum(np.logical_or(predtions_occupy, gt)) #
     num_fp = np.sum(np.logical_and(predtions_occupy, inverse_gt))  # false positive
     num_fn = np.sum(np.logical_and(np.logical_not(predtions_occupy), gt))  # false negative
@@ -22,8 +24,9 @@ def evaluate_voxel_prediction(predictions, gt, threshold=1):
     precision = intersection / (intersection + num_fp)
     IoU = intersection / union
     recall = intersection / (intersection + num_fn)
+    accuracy = (intersection + inverse_intersection) / (intersection+ inverse_intersection + num_fp + num_fn)
 
-    return precision, IoU, recall
+    return precision, IoU, recall, accuracy
 
 
 def get_precision(y_true, y_pred):

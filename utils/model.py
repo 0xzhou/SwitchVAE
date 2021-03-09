@@ -164,8 +164,8 @@ def _cnn_img(input_shape):
 def get_gru_aggregator(feature_size, z_dim):
     inputs = keras.Input(shape=(g.NUM_VIEWS, feature_size), name='GRU_Aggreator_input')
     aggregated_output = GRU(units=feature_size,name='GRU1')(inputs)
-    #fc1 = Dense(units=1024, name='GRU_Aggreator_fc1')(aggregated_output)
-    #fc1 = BatchNormalization(name='GRU_Aggreator_bn1',**{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc1)
+    # fc1 = Dense(units=1024, name='GRU_Aggreator_fc1')(aggregated_output)
+    # fc1 = BatchNormalization(name='GRU_Aggreator_bn1',**{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc1)
 
     z_mean = BatchNormalization(name='GRU_Aggreator_bn_z_mean')(
         Dense(units=z_dim, kernel_initializer='glorot_normal', activation=None, name='GRU_Aggreator_z_mean')(aggregated_output))
@@ -436,11 +436,11 @@ def get_resnet18():
 
     #x = AveragePooling2D((5,5), name='GRU_AP1')(x)
     x = Flatten(name='resnet_flatten1')(x)
-    #fc1 =Dense(units=4096, activation='elu',name='resnet_fc1')(x)
-    #fc1 = BatchNormalization(name='resnet_fc_bn1',
+    # fc1 =Dense(units=4096, activation='elu',name='resnet_fc1')(x)
+    # fc1 = BatchNormalization(name='resnet_fc_bn1',
     #                     **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc1)
 
-    fc2 = Dense(units=1024, name='resnet_fc2')(x)
+    fc2 = Dense(units=1024, activation=None, name='resnet_fc2')(x)
     fc2 = BatchNormalization(name='resnet_fc_bn2',
                              **{'axis': -1, 'momentum': 0.99, 'epsilon': 2e-5, 'center': True, 'scale': True})(fc2)
 
