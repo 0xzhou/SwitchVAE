@@ -18,7 +18,7 @@ def learning_rate_scheduler(epoch):
     if epoch < 50:
         return 0.0002
     else:
-        return 0.0002 * 0.9 ** ((epoch - 50)/ 10)
+        return 0.0002 * 0.96 ** ((epoch - 50)/ 10)
 
 def main(args):
     # Hyperparameters

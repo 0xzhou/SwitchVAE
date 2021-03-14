@@ -20,10 +20,13 @@ ConFig=tf.ConfigProto()
 ConFig.gpu_options.allow_growth=True
 session=tf.Session(config=ConFig)
 
-def learning_rate_scheduler(epoch, lr):
-    if epoch >= 1:
-        lr = learning_rate_2
-    return lr
+
+def learning_rate_scheduler(epoch):
+    # initial_learning_rate * decay_rate ^ (step / decay_steps)
+    if epoch < 50:
+        return 0.0002
+    else:
+        return 0.0002 * (0.96 ** ((epoch - 50) / 10))
 
 def main(args):
 
@@ -64,7 +67,8 @@ def main(args):
 
     IoU = metrics.get_IoU(inputs, outputs)
 
-    opt = Adam(lr=learning_rate)
+    #opt = Adam(lr=learning_rate)
+    opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
     # Total loss
     if loss_type == 'bce':
@@ -93,7 +97,7 @@ def main(args):
         vae.add_loss(BCE_loss)
         vae.add_loss(kl_loss)
         vae.add_loss(tc_loss)
-        vae.compile(optimizer = opt)
+        vae.compile(optimizer=opt)
         vae.add_metric(IoU, name='IoU', aggregation='mean')
         vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         vae.add_metric(kl_loss, name='kl_loss', aggregation='mean')
@@ -108,13 +112,14 @@ def main(args):
     data_train = data_IO.voxelPathList2matrix(voxel_folder_list)
 
     train_callbacks = [
-        tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=0.000001, cooldown=1),
+        #tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=0.000001, cooldown=1),
+        tf.keras.callbacks.LearningRateScheduler(learning_rate_scheduler, verbose=0),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log'),
         tf.keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(train_data_path, 'weights_{epoch:03d}_{loss:.4f}.h5'),
             save_weights_only=True,
-            period=50
+            period=100
         )
     ]
 
@@ -127,7 +132,9 @@ def main(args):
     )
 
     save_train.save_config_pro(save_path=train_data_path)
-    vae.save_weights(os.path.join(train_data_path,'end_weights.h5'))
+    encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxEncoder.h5'))
+    decoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxDecoder.h5'))
+    vae.save_weights(os.path.join(train_data_path, 'weightsEnd_all.h5'))
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))

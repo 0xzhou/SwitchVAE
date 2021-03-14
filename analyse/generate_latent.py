@@ -12,16 +12,17 @@ from tensorflow.keras.layers import Input
 from sklearn.utils import shuffle
 import time
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
 session = tf.Session(config=ConFig)
 
 
-def latent2dict(hash, mu, logvar, z):
+def latent2dict(hash, z_mean, z_logvar, z):
     output = {}
     for i in range(len(hash)):
-        output[hash[i] + '_mu'] = mu[i]
-        output[hash[i] + '_logvar'] = logvar[i]
+        output[hash[i] + '_z_mean'] = z_mean[i]
+        output[hash[i] + '_z_logvar'] = z_logvar[i]
         output[hash[i] + '_z'] = z[i]
     return output
 
@@ -39,7 +40,8 @@ def main(args):
     if input_form == 'voxel':
         reconstructions_save_path = args.save_dir + '/analyse_voxel_input'
         latent_save_path = args.save_dir + '/voxel_latent_dict'
-        #os.makedirs(latent_save_path)
+        if not os.path.exists(latent_save_path):
+            os.makedirs(latent_save_path)
 
         voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
         voxel_encoder = model.get_voxel_encoder(z_dim)
@@ -57,14 +59,14 @@ def main(args):
 
             z_mean, z_logvar, z = voxel_encoder.predict(voxels)
             latent_dict = latent2dict(hash, z_mean, z_logvar, z)
-            latent_dict_save_path = os.path.join(latent_save_path, 'latent_dict.pkl')
+            latent_dict_save_path = os.path.join(latent_save_path, 'voxel_latent_dict_table_all.pkl')
             save_latent_dict = open(latent_dict_save_path, 'wb')
             pickle.dump(latent_dict, save_latent_dict)
             save_latent_dict.close()
             reconstructions = test_model.predict(voxels)
 
         elif dataset == 'modelnet':
-            X = {'train_z_mean': [], 'train_z': [], 'test_z_mean':[], 'test_z':[]}
+            X = {'train_z_mean': [], 'train_z': [], 'test_z_mean':[], 'test_z':[],'train_z_cat':[] ,'test_z_cat':[]}
             y = {'train_label': [], 'test_label': []}
             voxel_data = np.load(args.voxel_npz)
             train_voxels, train_labels = shuffle(voxel_data['X_train'], voxel_data['y_train'])
@@ -75,25 +77,31 @@ def main(args):
                 train_batch_voxels = train_voxels[args.batch_size * i:args.batch_size * (i + 1),:]
                 train_batch_labels = train_labels[args.batch_size * i:args.batch_size * (i + 1)]
                 train_z_mean, train_z_logvar, train_z = voxel_encoder.predict(train_batch_voxels)
+                train_z_concatenate = np.concatenate((train_z_mean, train_z_logvar), 1)
                 for j in range(train_z_mean.shape[0]):
                     X['train_z_mean'].append(train_z_mean[j])
                     X['train_z'].append(train_z[j])
+                    X['train_z_cat'].append(train_z_concatenate[j])
                     y['train_label'].append(train_batch_labels[j])
             for i in range(test_batch):
                 test_batch_voxels = test_voxels[args.batch_size * i:args.batch_size * (i + 1), :]
                 test_batch_labels = test_labels[args.batch_size * i:args.batch_size * (i + 1)]
                 test_z_mean, test_z_logvar, test_z = voxel_encoder.predict(test_batch_voxels)
+                test_z_concatenate = np.concatenate((test_z_mean, test_z_logvar), 1)
                 for j in range(test_z_mean.shape[0]):
                     X['test_z_mean'].append(test_z_mean[j])
                     X['test_z'].append(test_z[j])
+                    X['test_z_cat'].append(test_z_concatenate[j])
                     y['test_label'].append(test_batch_labels[j])
 
-            np.savez_compressed(os.path.join(args.save_dir,'modelnet10_voxel_latent.npz'),
+            np.savez_compressed(os.path.join(args.save_dir,'modelnet10_voxel_latent_cat.npz'),
                                 train_z=X['train_z'],
                                 train_z_mean=X['train_z_mean'],
+                                train_z_cat=X['train_z_cat'],
                                 train_labels=y['train_label'],
                                 test_z=X['test_z'],
                                 test_z_mean=X['test_z_mean'],
+                                test_z_cat=X['test_z_cat'],
                                 test_labels=y['test_label'])
 
     elif input_form == 'image':
@@ -102,7 +110,7 @@ def main(args):
         if not os.path.exists(latent_save_path):
             os.makedirs(latent_save_path)
 
-        image_input = Input(shape=g.VIEWS_IMAGE_SHAPE)
+        image_input = Input(shape=g.VIEWS_IMAGE_SHAPE_SHAPENET)
         image_encoder = model.get_img_encoder(z_dim)['image_encoder']
         image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
 
@@ -163,7 +171,7 @@ def main(args):
                     X['test_z'].append(test_z[j])
                     y['test_label'].append(test_batch_labels[j])
 
-            np.savez_compressed(os.path.join(args.save_dir, 'modelnet40_image_latent_1BG.npz'),
+            np.savez_compressed(os.path.join(args.save_dir, 'modelnet40_image_latent_255BG.npz'),
                                 train_z=X['train_z'],
                                 train_z_mean=X['train_z_mean'],
                                 train_labels=y['train_label'],

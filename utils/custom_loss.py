@@ -16,6 +16,7 @@ def kl_loss(z_mean, z_logvar):
 
 
 def gaussian_log_density(samples, mean, logvar):
+
     pi = tf.constant(np.pi)
     normalization = tf.log(2. * pi)
     inv_sigma = tf.exp(-logvar)

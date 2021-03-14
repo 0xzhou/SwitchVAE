@@ -11,12 +11,12 @@ import utils.globals as g
 
 
 def sampling(args):
-    mu, log_sigma = args
-    batch = K.shape(mu)[0]
-    dim = K.int_shape(mu)[1]
-    epsilon = K.random_normal(shape=(batch,dim))
+    z_mean, z_logvar = args
+    batch = K.shape(z_mean)[0]
+    dim = K.int_shape(z_mean)[1]
+    epsilon = K.random_normal(shape=(batch, dim))
 
-    return mu + K.exp(log_sigma) * epsilon
+    return z_mean + K.exp(z_logvar / 2.0) * epsilon
 
 def get_voxel_VAE(z_dim = 200):
     enc_in = Input(shape=g.VOXEL_INPUT_SHAPE, name='VoxEncoder_inputs')

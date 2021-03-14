@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
-    latent_key = ['z', 'z_mean']
+    latent_key = ['z_mean']
+    #latent_key = ['z', 'z_mean']
+    #latent_key = ['z_cat']
     svm_kernel = ['rbf', 'linear', ]
-    latent_file_dirs = ['/home/zmy/Downloads/allCategory_uniLoss2/modelnet10_image_latent_1BG.npz',
-                    '/home/zmy/Downloads/allCategory_uniLoss2/modelnet40_image_latent_1BG.npz']
-    save_dir = '/home/zmy/Downloads/OneDrive-2021-03-04/'
+    latent_file_dirs = ['/home/zmy/TrainingData/2021.2.17/2021_03_14_14_04_55/modelnet10_voxel_latent_cat.npz',
+                    '/home/zmy/TrainingData/2021.2.17/2021_03_14_14_04_55/modelnet40_voxel_latent_cat.npz']
 
     for i, latent_file in enumerate(latent_file_dirs):
         for key in latent_key:
@@ -46,4 +47,4 @@ if __name__ == '__main__':
                 plt.yticks([])
                 plt.axis('tight')
                 #plt.show()
-                plt.savefig('/home/zmy/Downloads/allCategory_uniLoss2/img_latent_tsne'+str(i)+'_'+key+'_'+kernel+'_BG1'+'.png')
+                plt.savefig('/home/zmy/TrainingData/2021.2.17/2021_03_14_14_04_55/voxel_latent_tsne'+str(i)+'_'+key+'_'+kernel+''+'.png')

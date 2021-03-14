@@ -95,7 +95,7 @@ def main(args):
         MMI.add_loss(BCE_loss)
         MMI.add_loss(uni_loss)
         MMI.add_loss(kl_loss)
-        MMI.compile(optimizer=opt, metrics=['accuracy'])
+        MMI.compile(optimizer=opt)
         MMI.add_metric(IoU, name='IoU', aggregation='mean')
         MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')

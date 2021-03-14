@@ -3,8 +3,8 @@ from tensorflow.keras.activations import sigmoid
 from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras import backend as K
 
-from MMI import *
 from utils import data_IO, arg_parser, save_train, custom_loss, metrics
+from VAE import *
 import sys, os, random
 import numpy as np
 
@@ -25,7 +25,6 @@ def learning_rate_scheduler(epoch):
 def main(args):
     # Training on all categories
     modelnet_voxel_dataset = args.modelnet_voxel_dataset
-    modelnet_image_dataset = args.modelnet_image_dataset
 
 
     ModelNet10_CLASSES = ['bathtub', 'bed', 'chair', 'desk', 'dresser',
@@ -37,7 +36,7 @@ def main(args):
                           'wardrobe', 'bookshelf', 'bottle', 'piano']
 
 
-    multi_category_id = data_IO.generate_modelnet_idList(modelnet_voxel_dataset,ModelNet10_CLASSES,'train')
+    multi_category_id = data_IO.generate_modelnet_idList(modelnet_voxel_dataset,ModelNet40_CLASSES,'train')
 
     # Hyperparameters
     epoch_num = args.num_epochs
@@ -52,24 +51,19 @@ def main(args):
     os.makedirs(model_pdf_path)
 
     # Model selection
-    model = get_MMI(z_dim, train_mode='switch', use_pretrain=True)
+    model = get_voxel_VAE(z_dim)
 
     # Get model structures
-    vol_inputs = model['vol_inputs']
+    vol_inputs = model['inputs']
     outputs = model['outputs']
-    z_img = model['z_img']
-    z_vol = model['z_vol']
+    z = model['z']
     z_mean = model['z_mean']
     z_logvar = model['z_logvar']
-    z = model['z']
 
-    encoder = model['MMI_encoder']
-    image_encoder = model['image_encoder']
-    image_embedding_model = model['image_embedding_model']
-    view_feature_aggregator = model['view_feature_aggregator']
-    voxel_encoder = model['voxel_encoder']
-    decoder = model['MMI_decoder']
-    MMI = model['MMI']
+    encoder = model['encoder']
+    decoder = model['decoder']
+    vae = model['vae']
+
 
     # Loss functions
     loss_type = args.loss
@@ -80,9 +74,6 @@ def main(args):
     # Loss function in Genrative ... paper: a specialized form of Binary Cross-Entropy (BCE)
     BCE_loss = K.cast(custom_loss.weighted_binary_crossentropy(vol_inputs, K.clip(sigmoid(outputs), 1e-7, 1.0 - 1e-7)),
                       'float32')
-
-    # universal loss
-    uni_loss = custom_loss.MSE(z_img, z_vol)
 
     # Loss in betatc VAE
     tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, z_mean, z_logvar)
@@ -96,47 +87,40 @@ def main(args):
 
     # Total loss
     if loss_type == 'bce':
-        MMI.add_loss(BCE_loss)
-        MMI.compile(optimizer=opt)
+        vae.add_loss(BCE_loss)
+        vae.compile(optimizer=opt)
     elif loss_type == 'vae':
         print('Using VAE model')
-        MMI.add_loss(BCE_loss)
-        MMI.add_loss(uni_loss)
-        MMI.add_loss(kl_loss)
-        MMI.compile(optimizer=opt)
-        MMI.add_metric(IoU, name='IoU', aggregation='mean')
-        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
-        MMI.add_metric(uni_loss, name='uni_loss', aggregation='mean')
+        vae.add_loss(BCE_loss)
+        vae.add_loss(kl_loss)
+        vae.compile(optimizer=opt)
+        vae.add_metric(IoU, name='IoU', aggregation='mean')
+        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        vae.add_metric(kl_loss, name='kl_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        MMI.add_loss(BCE_loss)
-        MMI.add_loss(args.beta * kl_loss)
-        MMI.compile(optimizer=opt)
-        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        MMI.add_metric(args.beta * kl_loss, name='beta_kl_loss', aggregation='mean')
+        vae.add_loss(BCE_loss)
+        vae.add_loss(args.beta * kl_loss)
+        vae.compile(optimizer=opt)
+        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        vae.add_metric(args.beta * kl_loss, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        MMI.add_loss(BCE_loss)
-        MMI.add_loss(kl_loss)
-        MMI.add_loss(tc_loss)
-        MMI.compile(optimizer=opt)
-        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
-        MMI.add_metric(tc_loss, name='tc_loss', aggregation='mean')
+        vae.add_loss(BCE_loss)
+        vae.add_loss(kl_loss)
+        vae.add_loss(tc_loss)
+        vae.compile(optimizer=opt)
+        vae.add_metric(IoU, name='IoU', aggregation='mean')
+        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+        vae.add_metric(kl_loss, name='kl_loss', aggregation='mean')
+        vae.add_metric(tc_loss, name='tc_loss', aggregation='mean')
 
-    plot_model(MMI, to_file=os.path.join(model_pdf_path, 'MMI.pdf'), show_shapes=True)
-    plot_model(encoder, to_file=os.path.join(model_pdf_path, 'MMI-encoder.pdf'), show_shapes=True)
-    plot_model(decoder, to_file=os.path.join(model_pdf_path, 'MMI-decoder.pdf'), show_shapes=True)
-    plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'image-encoder.pdf'), show_shapes=True)
-    plot_model(image_embedding_model, to_file=os.path.join(model_pdf_path, 'image_embedding_model.pdf'),
-               show_shapes=True)
-    plot_model(view_feature_aggregator, to_file=os.path.join(model_pdf_path, 'feature_aggregator.pdf'),
-               show_shapes=True)
-    plot_model(voxel_encoder, to_file=os.path.join(model_pdf_path, 'voxel-encoder.pdf'), show_shapes=True)
+    plot_model(vae, to_file=os.path.join(model_pdf_path, 'model.pdf'), show_shapes=True)
+    plot_model(encoder, to_file=os.path.join(model_pdf_path, 'encoder.pdf'), show_shapes=True)
+    plot_model(decoder, to_file=os.path.join(model_pdf_path, 'decoder.pdf'), show_shapes=True)
     save_train.save_config_pro(save_path=train_data_path)
 
-    def generate_MMI_batch_data(voxel_dataset, image_dataset, multicat_id, batch_size):
+    def generate_batch_data(voxel_dataset,multicat_id, batch_size):
 
         number_of_elements = len(multicat_id)
         random.shuffle(multicat_id)
@@ -148,7 +132,6 @@ def main(args):
                 category_id_one_batch = multicat_id[excerpt]
 
                 voxel_one_batch = np.zeros((batch_size,) + g.VOXEL_INPUT_SHAPE, dtype=np.float32)
-                image_one_batch = np.zeros((batch_size, 12) + g.IMAGE_SHAPE, dtype=np.float32)
 
                 for i, cat_id in enumerate(category_id_one_batch):
                     category, hash = cat_id.rsplit('_',1)[0], cat_id.rsplit('_',1)[1]
@@ -156,15 +139,7 @@ def main(args):
                     voxel_one_batch_file = os.path.join(voxel_dataset,category,'train', cat_id+'.binvox')
                     voxel_one_batch[i] = data_IO.read_voxel_data(voxel_one_batch_file)
 
-                    image_prefix = os.path.join(image_dataset,category,'train',cat_id)
-                    view_image=np.zeros(g.VIEWS_IMAGE_SHAPE_MODELNET, dtype=np.float32)
-                    for view in range(12):
-                        image_file = image_prefix + '.obj.shaded_v'+str(view + 1).zfill(3)+'.png'
-                        image = data_IO.preprocess_modelnet_img(image_file)
-                        view_image[view] = image
-                    image_one_batch[i] = view_image
-
-                yield ([image_one_batch, voxel_one_batch],)
+                yield (voxel_one_batch, )
 
     train_callbacks = [
         # tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2, patience=5, min_lr=1e-7, cooldown=1),
@@ -174,24 +149,20 @@ def main(args):
         tf.keras.callbacks.ModelCheckpoint(
             filepath=os.path.join(train_data_path, 'weights_{epoch:03d}_{loss:.4f}.h5'),
             save_weights_only=True,
-            period=50
+            period=200
         )
     ]
 
-    MMI.fit_generator(
-        generate_MMI_batch_data(modelnet_voxel_dataset,modelnet_image_dataset,multi_category_id, batch_size),
+    vae.fit_generator(
+        generate_batch_data(modelnet_voxel_dataset,multi_category_id, batch_size),
         steps_per_epoch=len(multi_category_id) // batch_size,
         #steps_per_epoch=5,
         epochs=epoch_num,
         callbacks=train_callbacks
     )
-
-    image_embedding_model.save_weights(os.path.join(train_data_path, 'weightsEnd_viewFeatureEmbed.h5'))
-    view_feature_aggregator.save_weights(os.path.join(train_data_path, 'weightsEnd_viewFeatureAggre.h5'))
-    image_encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_imgEncoder.h5'))
-    voxel_encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxEncoder.h5'))
+    encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxEncoder.h5'))
     decoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxDecoder.h5'))
-    MMI.save_weights(os.path.join(train_data_path, 'weightsEnd_all.h5'))
+    vae.save_weights(os.path.join(train_data_path, 'weightsEnd_all.h5'))
 
 
 if __name__ == '__main__':

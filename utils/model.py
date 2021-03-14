@@ -198,7 +198,7 @@ def get_img_encoder(z_dim=200):
     """
     # input placeholder with shape (None, 24, 137, 137, 3)
     #inputs = Input(shape=g.VIEWS_IMAGE_SHAPE, name='MVCNN_input')
-    inputs = Input(shape=g.VIEWS_IMAGE_SHAPE_2, name='MVCNN_input')
+    inputs = Input(shape=g.VIEWS_IMAGE_SHAPE_MODELNET, name='MVCNN_input')
 
     # split inputs into views(a list), which has num_views elements, each element of views has shape (None, 137, 137, 3)
     views = Lambda(_split_inputs, name='MVCNN_split')(inputs)
