@@ -30,21 +30,22 @@ def process_folder():
 
 if __name__ == '__main__':
 
-    fig = plt.figure(figsize=(60, 24), dpi=100)  # width, height
+    fig = plt.figure(figsize=(55, 16), dpi=100)  # width, height
 
-    rows = 3
+    rows = 2
     columns = 6
 
-    img_path = '/home/zmy/Downloads/betaDisentangle/1a6f'
+    img_path = '/home/zmy/Downloads/betaDisentangle/374e'
 
     # Method1: plot all cols
-    row_start = 0
-    col_start = 0
+    # row_start = 0
+    # col_start = 0
 
     # Method2: plot selected cols
-    # aim_col_list = [1,3,5,7,9,10]
-    # start_inx = 0
-    # col_start = aim_col_list[start_inx]
+    aim_col_list = [2,4,6,8,9,10]
+    row_start=0
+    start_inx = 0
+    col_start = aim_col_list[start_inx]
 
     for i in range(1, columns * rows + 1):
         fig.add_subplot(rows, columns, i)
@@ -52,29 +53,29 @@ if __name__ == '__main__':
         name = str(row_start) + str(col_start).zfill(2) + '_gen.png'
         print("Ploting Image", name)
         I = mpimg.imread(os.path.join(img_path, name))
-        I = crop_center(I, 300, 300)
+        I = crop_center(I, 260, 260)
         plt.imshow(I)
 
         # Method1:
-        col_start += 1
+        # col_start += 1
 
         # Method2:
-        # start_inx+=1
-        # if start_inx < len(aim_col_list):
-        #     col_start = aim_col_list[start_inx]
+        start_inx+=1
+        if start_inx < len(aim_col_list):
+            col_start = aim_col_list[start_inx]
 
         # Method1:
-        if col_start > 10:
-            col_start = 0
-            row_start += 1
+        # if col_start > 10:
+        #     col_start = 0
+        #     row_start += 1
 
         # Method2:
-        # if start_inx >= len(aim_col_list):
-        #     start_inx = 0
-        #     col_start = aim_col_list[start_inx]
-        #     row_start += 1
+        if start_inx >= len(aim_col_list):
+            start_inx = 0
+            col_start = aim_col_list[start_inx]
+            row_start += 1
 
     fig.tight_layout()
     # plt.subplots_adjust(left=0.05, right=0.95,bottom=0.05,top=0.95,wspace=0.2, hspace=0.2)
-    plt.subplots_adjust(wspace=0.2, hspace=0.2)
-    plt.savefig('/home/zmy/Downloads/betaDisentangle/1a6f_2.png')
+    # plt.subplots_adjust(wspace=0.2, hspace=0.2)
+    plt.savefig('/home/zmy/Downloads/betaDisentangle/374e_interpolation_fig_w55_h16_sub_w260_h260.png')

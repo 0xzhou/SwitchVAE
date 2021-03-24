@@ -37,15 +37,16 @@ def main(args):
                           'wardrobe', 'bookshelf', 'bottle', 'piano']
 
     multi_category_id = data_IO.generate_modelnet_idList(modelnet_voxel_dataset, ModelNet40_CLASSES, 'test')
+
     random.shuffle(multi_category_id)
     num_test_object = len(multi_category_id)
 
-    model_pdf_path = os.path.join(args.save_dir, 'model_pdf_test')
+    model_pdf_path = os.path.join(args.save_dir, 'model_modelnet_pdf_test')
     if not os.path.exists(model_pdf_path):
         os.makedirs(model_pdf_path)
 
     if input_form == 'voxel':
-        test_result_path = args.save_dir + '/test_sub_voxel_input'
+        test_result_path = args.save_dir + '/test_modelnet_voxel_input'
 
         voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
         voxel_encoder = model.get_voxel_encoder(z_dim)
@@ -67,10 +68,8 @@ def main(args):
         plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Encoder.pdf'), show_shapes=True)
         plot_model(voxel_vae, to_file=os.path.join(model_pdf_path, 'Voxel_VAE.pdf'), show_shapes=True)
 
-
     elif input_form == 'image':
-        test_result_path = args.save_dir + '/test_sub_image_input'
-
+        test_result_path = args.save_dir + '/test_modelnet_image_input'
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE_MODELNET)
         image_encoder = model.get_img_encoder(z_dim)['image_encoder']
         image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
@@ -80,6 +79,7 @@ def main(args):
         image_vae = Model(image_input, output)
 
         images = np.zeros((num_test_object, 12) + g.IMAGE_SHAPE, dtype=np.float32)
+        voxels = np.zeros((num_test_object,) + g.VOXEL_INPUT_SHAPE, dtype=np.float32)
         for i, cat_id in enumerate(multi_category_id):
             category, hash = cat_id.rsplit('_', 1)[0], cat_id.rsplit('_', 1)[1]
             image_prefix = os.path.join(modelnet_image_dataset, category, 'test', cat_id)
@@ -89,52 +89,16 @@ def main(args):
                 image = data_IO.preprocess_modelnet_img(image_file)
                 view_image[view] = image
             images[i] = view_image
-            print("Loading image from object:",str(i) + '/'+ str(num_test_object))
+
+            voxel_file = os.path.join(modelnet_voxel_dataset, category, 'test', cat_id + '.binvox')
+            voxels[i] = data_IO.read_voxel_data(voxel_file)
+            print("Loading image from dataset:",str(i) + '/'+ str(num_test_object))
 
         reconstructions = image_vae.predict(images)
 
         plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'Image_Encoder.pdf'), show_shapes=True)
         plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Decoder.pdf'), show_shapes=True)
         plot_model(image_vae, to_file=os.path.join(model_pdf_path, 'Image_VAE.pdf'), show_shapes=True)
-
-    elif input_form == 'both':
-        test_result_path = args.save_dir + '/test_sub_both_input'
-
-        image_input = Input(shape=g.VIEWS_IMAGE_SHAPE_SHAPENET)
-        voxel_input = Input(shape=g.VOXEL_INPUT_SHAPE)
-        image_encoder = model.get_img_encoder(z_dim)['mvcnn_model']
-        voxel_encoder = model.get_voxel_encoder(z_dim)
-        image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
-        voxel_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxEncoder.h5'), by_name=True)
-
-        img_encoder_output = image_encoder(image_input)
-        vol_encoder_output = voxel_encoder(voxel_input)
-        weight_op_img = Lambda(lambda x: x * g.IMG_WEIGHT, name='Imgae_Weighted_Layer')
-        weight_op_vol = Lambda(lambda x: x * g.VOL_WEIGHT, name='Voxel_Weighted_Layer')
-        img_z_mean, img_z_logvar, img_z = [weight_op_img(x) for x in img_encoder_output]
-        vol_z_mean, vol_z_logvar, vol_z = [weight_op_vol(x) for x in vol_encoder_output]
-        z_mean = Add(name='Weighted_Add_z_mean')([img_z_mean, vol_z_mean])
-        z_logvar = Add(name='Weighted_Add_z_logvar')([img_z_logvar, vol_z_logvar])
-        z = Add(name='Weighted_Add_z')([img_z, vol_z])
-
-        decoder = model.get_voxel_decoder(z_dim)
-        decoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxDecoder.h5'), by_name=True)
-        output = decoder(z_mean)
-
-        mmi = Model([image_input, voxel_input], output)
-
-        hash = os.listdir(image_data_path)
-        image_file_list = [os.path.join(image_data_path, id) for id in hash]
-        voxel_file_list = [os.path.join(voxel_data_path, id) for id in hash]
-
-        images = data_IO.imagePathList2matrix(image_file_list, train=False)
-        voxels = data_IO.voxelPathList2matrix(voxel_file_list)
-        reconstructions = mmi.predict([images, voxels])
-
-        plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'Image_Encoder.pdf'), show_shapes=True)
-        plot_model(image_encoder, to_file=os.path.join(model_pdf_path, 'Voxel_Encoder.pdf'), show_shapes=True)
-        plot_model(decoder, to_file=os.path.join(model_pdf_path, 'Decoder.pdf'), show_shapes=True)
-        plot_model(mmi, to_file=os.path.join(model_pdf_path, 'MMI.pdf'), show_shapes=True)
 
     reconstructions[reconstructions > 0] = 1
     reconstructions[reconstructions < 0] = 0
@@ -152,7 +116,7 @@ def main(args):
     #for i in range(reconstructions.shape[0]):
     if save_bin or save_the_img:
         for i in range(100):
-            save_volume.save_binvox_output_2(reconstructions[i, 0, :], multi_category_id[i], test_result_path, '_gen', save_bin=save_bin,
+            save_volume.save_binvox_output_for_modelnet(reconstructions[i, 0, :], multi_category_id[i], test_result_path, '_gen', save_bin=save_bin,
                                        save_img=save_the_img)
 
 if __name__ == '__main__':

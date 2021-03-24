@@ -2,12 +2,9 @@ import numpy as np
 import shutil, sys, os, pickle
 sys.path.append("..")
 
-from MMI import *
-from VAE import *
 from utils import save_volume, data_IO, arg_parser, model
 from utils import model
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input
+import tensorflow as tf
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ConFig=tf.ConfigProto()
@@ -19,14 +16,14 @@ def main():
 
     latent_dims = 128
 
-    interpolation_save_path = '/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/voxel_latent_dict/chair_arith60'
-    latent_vector_file1 = open('/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/voxel_latent_dict/voxel_latent_dict_chair_all.pkl', 'rb')
+    interpolation_save_path = '/home/zmy/Downloads/allCategory_uniLoss1/voxel_latent_dict/table_arith37'
+    latent_vector_file1 = open('/home/zmy/Downloads/allCategory_uniLoss1/voxel_latent_dict/voxel_latent_dict_table_all.pkl', 'rb')
     latent_vector_file2 = open('/home/zmy/Downloads/allCategory_uniLoss1/voxel_latent_dict/latent_dict_chair_train.pkl', 'rb')
-    weights_path = '/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/weightsEnd_voxDecoder.h5'
+    weights_path = '/home/zmy/Downloads/allCategory_uniLoss1/weightsEnd_voxDecoder.h5'
 
-    object1 = '928678562a6a57db698a862d11861eaa'
-    object2 = '4e3cc3f6d2c25b904addf6a5f8726274'
-    object3 = 'c47f71319ead4eb8a4fb72f4f3b0e317'
+    object1 = '9e42bbdbfe36680391e4d6c585a697a'
+    object2 = 'a49d69c86f512f5d28783a5eb7743d5f'
+    object3 = 'a0445e4888d56666b9d7c2fc41e80228'
 
     # Get the latent vector of two objects
     latent_space = np.zeros(shape=(4,128), dtype=np.float32)

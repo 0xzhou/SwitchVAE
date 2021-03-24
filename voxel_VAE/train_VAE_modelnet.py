@@ -36,7 +36,7 @@ def main(args):
                           'wardrobe', 'bookshelf', 'bottle', 'piano']
 
 
-    multi_category_id = data_IO.generate_modelnet_idList(modelnet_voxel_dataset,ModelNet40_CLASSES,'train')
+    multi_category_id = data_IO.generate_modelnet_idList(modelnet_voxel_dataset,ModelNet10_CLASSES,'train')
 
     # Hyperparameters
     epoch_num = args.num_epochs
