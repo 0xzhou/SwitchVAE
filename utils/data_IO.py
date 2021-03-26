@@ -135,7 +135,7 @@ def objectIdList2matrix(objectIdlist, dataset, train_or_test):
         for view in range(12):
             image_file = os.path.join(dataset, category, train_or_test,
                                       id + '.obj.shaded_v' + str(view + 1).zfill(3) + '.png')
-            img_array = preprocess_modelnet_img(image_file, BG_rgb=[0, 0, 0], aim_size=(137, 137))
+            img_array = preprocess_modelnet_img(image_file, BG_rgb=[255, 255, 255], aim_size=(137, 137))
             # print("The r channel", img_array[:,:,0])
             # print("The shape of processed img", img_array.shape)
             # plt.imshow(img_array)

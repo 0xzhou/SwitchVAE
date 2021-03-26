@@ -21,8 +21,8 @@ def get_MMI(z_dim=200, train_mode='switch', use_pretrain=True):
 
     img_encoder_model = get_img_encoder(z_dim)
     img_encoder = img_encoder_model['image_encoder']
-    image_embedding_model = get_img_encoder(z_dim)['image_embedding_model']
-    view_feature_aggregator = get_img_encoder(z_dim)['view_feature_aggregator']
+    image_embedding_model = img_encoder_model['image_embedding_model']
+    view_feature_aggregator = img_encoder_model['view_feature_aggregator']
     vol_encoder = get_voxel_encoder(z_dim)
 
     if use_pretrain:

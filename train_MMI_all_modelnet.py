@@ -2,6 +2,7 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.keras.activations import sigmoid
 from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras import backend as K
+from tensorflow.keras.callbacks import Callback
 
 from MMI import *
 from utils import data_IO, arg_parser, save_train, custom_loss, metrics
@@ -21,6 +22,17 @@ def learning_rate_scheduler(epoch):
     else:
         return 0.0002 * (0.96 ** ((epoch - 50) / 10))
 
+alpha= K.variable(0.0)
+class epoch_kl_weight_callback(Callback):
+    def __init__(self, alpha):
+        self.alpha = alpha
+    def on_epoch_begin(self, epoch, logs=None):
+        if epoch<=400:
+            pass
+        elif epoch<=800:
+            K.set_value(self.alpha, (alpha-400.0)/400.0)
+        else:
+            K.set_value(self.alpha, 1)
 
 def main(args):
     # Training on all categories
@@ -94,37 +106,32 @@ def main(args):
     # opt = Adam(lr=learning_rate)
     opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
-    # Total loss
+    ### Define loss function
+    MMI.add_loss(BCE_loss)
+    MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+    MMI.add_metric(IoU, name='IoU', aggregation='mean')
+
     if loss_type == 'bce':
-        MMI.add_loss(BCE_loss)
-        MMI.compile(optimizer=opt)
+        print('Using VAE model without kl loss')
     elif loss_type == 'vae':
         print('Using VAE model')
-        MMI.add_loss(BCE_loss)
         MMI.add_loss(uni_loss)
-        MMI.add_loss(kl_loss)
-        MMI.compile(optimizer=opt)
-        MMI.add_metric(IoU, name='IoU', aggregation='mean')
-        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
+        MMI.add_loss(alpha * kl_loss)
+        MMI.add_metric(alpha * kl_loss, name='kl_loss', aggregation='mean')
         MMI.add_metric(uni_loss, name='uni_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        MMI.add_loss(BCE_loss)
         MMI.add_loss(args.beta * kl_loss)
-        MMI.compile(optimizer=opt)
-        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(args.beta * kl_loss, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        MMI.add_loss(BCE_loss)
         MMI.add_loss(kl_loss)
         MMI.add_loss(tc_loss)
-        MMI.compile(optimizer=opt)
-        MMI.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         MMI.add_metric(kl_loss, name='kl_loss', aggregation='mean')
         MMI.add_metric(tc_loss, name='tc_loss', aggregation='mean')
+    MMI.compile(optimizer= opt)
 
+    ### plot the module architecture
     plot_model(MMI, to_file=os.path.join(model_pdf_path, 'MMI.pdf'), show_shapes=True)
     plot_model(encoder, to_file=os.path.join(model_pdf_path, 'MMI-encoder.pdf'), show_shapes=True)
     plot_model(decoder, to_file=os.path.join(model_pdf_path, 'MMI-decoder.pdf'), show_shapes=True)
@@ -171,17 +178,13 @@ def main(args):
         tf.keras.callbacks.LearningRateScheduler(learning_rate_scheduler, verbose=0),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log'),
-        tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(train_data_path, 'weights_{epoch:03d}_{loss:.4f}.h5'),
-            save_weights_only=True,
-            period=50
-        )
+        epoch_kl_weight_callback(alpha),
     ]
 
     MMI.fit_generator(
         generate_MMI_batch_data(modelnet_voxel_dataset,modelnet_image_dataset,multi_category_id, batch_size),
-        steps_per_epoch=len(multi_category_id) // batch_size,
-        #steps_per_epoch=5,
+        #steps_per_epoch=len(multi_category_id) // batch_size,
+        steps_per_epoch=50,
         epochs=epoch_num,
         callbacks=train_callbacks
     )
@@ -192,7 +195,6 @@ def main(args):
     voxel_encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxEncoder.h5'))
     decoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxDecoder.h5'))
     MMI.save_weights(os.path.join(train_data_path, 'weightsEnd_all.h5'))
-
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))

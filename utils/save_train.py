@@ -35,6 +35,6 @@ def save_config_pro(save_path):
     # Copy Folders
     shutil.copytree('./utils', os.path.join(train_config_save_dir, 'utils'))
     shutil.copytree('./analyse', os.path.join(train_config_save_dir, 'analyse'))
-
+    shutil.copytree('./single_input_VAE', os.path.join(train_config_save_dir, 'single_input_VAE'))
 
 

@@ -4,6 +4,7 @@ from tensorflow.keras import backend as K
 
 
 def weighted_binary_crossentropy(target, output):
+    print()
     loss = -(80.0 * target * K.log(output) + 20.0 * (1.0 - target) * K.log(1.0 - output)) / 100.0
     loss = K.mean(K.sum(loss, axis=(-3, -2, -1)))
     return loss
