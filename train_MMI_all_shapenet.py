@@ -169,7 +169,8 @@ def main(args):
         # tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2, patience=5, min_lr=1e-7, cooldown=1),
         tf.keras.callbacks.LearningRateScheduler(learning_rate_scheduler, verbose=0),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
-        tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log')
+        tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log'),
+        epoch_kl_weight_callback(alpha)
     ]
 
     MMI.fit_generator(
