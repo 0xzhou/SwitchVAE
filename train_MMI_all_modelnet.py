@@ -64,7 +64,7 @@ def main(args):
     os.makedirs(model_pdf_path)
 
     # Model selection
-    model = get_MMI(z_dim, train_mode='switch', use_pretrain=True)
+    model = get_MMI(z_dim, g.VIEWS_IMAGE_SHAPE_MODELNET, train_mode='switch', use_pretrain=True)
 
     # Get model structures
     vol_inputs = model['vol_inputs']

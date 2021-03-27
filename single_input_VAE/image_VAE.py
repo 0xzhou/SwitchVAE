@@ -5,12 +5,12 @@ from utils.model import get_img_encoder, get_voxel_decoder
 import utils.globals as g
 
 
-def get_image_VAE(z_dim=200, use_pretrain=True):
-    #img_input = Input(shape=g.VIEWS_IMAGE_SHAPE_MODELNET, name='Image_Input')
-    img_input = Input(shape=g.VIEWS_IMAGE_SHAPE_SHAPENET, name='Image_Input')
+def get_image_VAE(z_dim=200, view_image_shape = None, use_pretrain=True):
+
+    img_input = Input(shape=view_image_shape, name='Image_Input')
     vol_input = Input(shape=g.VOXEL_INPUT_SHAPE, name='Voxel_Input')
 
-    img_encoder_model = get_img_encoder(z_dim)
+    img_encoder_model = get_img_encoder(z_dim,view_image_shape)
     img_encoder = img_encoder_model['image_encoder']
     image_embedding_model = img_encoder_model['image_embedding_model']
     view_feature_aggregator = img_encoder_model['view_feature_aggregator']

@@ -41,6 +41,7 @@ def main(args):
     category_list = ['04530566', '02933112', '03211117', '02691156', '04256520',
                      '04379243', '03691459', '04401088', '02828884', '02958343',
                      '03001627', '03636649', '04090263']
+    #chair = ['03001627']
     processed_dataset_path = args.processed_dataset
     voxel_files_list, image_files_list, multicat_hash_id = data_IO.multicat_path_list(processed_dataset_path,
                                                                                       category_list,
@@ -59,7 +60,7 @@ def main(args):
     os.makedirs(model_pdf_path)
 
     # Model selection
-    model = get_MMI(z_dim, train_mode='switch', use_pretrain=True)
+    model = get_MMI(z_dim, g.VIEWS_IMAGE_SHAPE_SHAPENET, train_mode='switch', use_pretrain=True)
 
     # Get model structures
     vol_inputs = model['vol_inputs']

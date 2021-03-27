@@ -71,7 +71,7 @@ def main(args):
     elif input_form == 'image':
         test_result_path = args.save_dir + '/test_modelnet_image_input'
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE_MODELNET)
-        image_encoder = model.get_img_encoder(z_dim)['image_encoder']
+        image_encoder = model.get_img_encoder(z_dim, g.VIEWS_IMAGE_SHAPE_MODELNET)['image_encoder']
         image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
         decoder = model.get_voxel_decoder(z_dim)
         decoder.load_weights(os.path.join(weights_dir, 'weightsEnd_voxDecoder.h5'), by_name=True)

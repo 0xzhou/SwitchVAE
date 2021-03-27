@@ -26,7 +26,6 @@ def latent2dict(hash, z_mean, z_logvar, z):
         output[hash[i] + '_z'] = z[i]
     return output
 
-
 def main(args):
     weights_dir = args.weights_dir
     save_the_img = args.generate_img
