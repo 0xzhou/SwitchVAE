@@ -110,7 +110,7 @@ def main(args):
             os.makedirs(latent_save_path)
 
         image_input = Input(shape=g.VIEWS_IMAGE_SHAPE_SHAPENET)
-        image_encoder = model.get_img_encoder(z_dim)['image_encoder']
+        image_encoder = model.get_img_encoder(z_dim, g.VIEWS_IMAGE_SHAPE_MODELNET)['image_encoder']
         image_encoder.load_weights(os.path.join(weights_dir, 'weightsEnd_imgEncoder.h5'), by_name=True)
 
         decoder = model.get_voxel_decoder(z_dim)
@@ -139,7 +139,7 @@ def main(args):
             X = {'train_z_mean': [], 'train_z': [], 'test_z_mean': [], 'test_z': []}
             y = {'train_label': [], 'test_label': []}
             object_id_data = np.load(args.image_npz)
-            modelnet_image_path = '/home/zmy/Datasets/ModelNet40_images/modelnet40_images_new_12x'
+            modelnet_image_path = '/home/zmy/mmi_dataset/ModelNet40_images/modelnet40_images_new_12x'
             train_images_id, train_labels = shuffle(object_id_data['X_train'], object_id_data['y_train'])
             test_images_id, test_labels = shuffle(object_id_data['X_test'], object_id_data['y_test'])
             train_batch = int(train_images_id.shape[0] / args.batch_size)
@@ -170,7 +170,7 @@ def main(args):
                     X['test_z'].append(test_z[j])
                     y['test_label'].append(test_batch_labels[j])
 
-            np.savez_compressed(os.path.join(args.save_dir, 'modelnet10_image_BG255_latent_2.npz'),
+            np.savez_compressed(os.path.join(args.save_dir, 'modelnet10_image_BG0_latent.npz'),
                                 train_z=X['train_z'],
                                 train_z_mean=X['train_z_mean'],
                                 train_labels=y['train_label'],

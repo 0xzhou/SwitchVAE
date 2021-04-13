@@ -13,10 +13,11 @@ def save_binvox_output(output_array, hash_id, output_dir, outname, save_bin=Fals
 
     # save the model image
     if save_img:
+        facecolor = (176 / 255, 196 / 255, 222 / 255)  # lightsteelblue
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         voxel_array = np.swapaxes(output_array, 1, 2)
-        ax.voxels(voxel_array.astype(np.bool), edgecolors='k')
+        ax.voxels(voxel_array.astype(np.bool), facecolors=facecolor)
         print('Generating', hash_id+outname+'.png')
         plt.axis('off')
         plt.savefig(output_dir + '/' + hash_id + outname + '.png')
@@ -34,10 +35,11 @@ def save_binvox_output_for_modelnet(output_array, hash_id, output_dir, outname, 
 
     # save the model image
     if save_img:
+        facecolor = (176 / 255, 196 / 255, 222 / 255) # lightsteelblue
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         # voxel_array = np.swapaxes(output_array, 1, 2)
-        ax.voxels(output_array.astype(np.bool), edgecolors='k')
+        ax.voxels(output_array.astype(np.bool), facecolors=facecolor)
         plt.savefig(output_dir + '/' + hash_id + outname + '.png')
         plt.close()
 

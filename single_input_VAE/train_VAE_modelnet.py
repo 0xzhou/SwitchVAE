@@ -2,6 +2,7 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.keras.activations import sigmoid
 from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras import backend as K
+from tensorflow.keras.callbacks import Callback
 
 from utils import data_IO, arg_parser, save_train, custom_loss, metrics
 from VAE import *
@@ -16,10 +17,22 @@ session = tf.Session(config=ConFig)
 
 def learning_rate_scheduler(epoch):
     # initial_learning_rate * decay_rate ^ (step / decay_steps)
-    if epoch < 50:
-        return 0.0002
+    init_lr = 1e-4
+    if epoch < 100:
+        return init_lr
     else:
-        return 0.0002 * (0.96 ** ((epoch - 50) / 10))
+        return init_lr * (0.96 ** ((epoch - 100) / 10))
+
+alpha = K.variable(0.0)
+class epoch_kl_weight_callback(Callback): # Cyclic Annealing Schedule
+    def __init__(self, alpha):
+        self.alpha = alpha
+    def on_epoch_begin(self, epoch, logs = None):
+        cycle = 200  # Epochs per annealing cycle
+        if int(epoch) % cycle <=100:
+            K.set_value(self.alpha, epoch/100.0)
+        else:
+            K.set_value(self.alpha, 1.0)
 
 
 def main(args):
@@ -86,34 +99,26 @@ def main(args):
     opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
 
     # Total loss
+    vae.add_loss(BCE_loss)
+    vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
+    vae.add_metric(IoU, name='IoU', aggregation='mean' )
     if loss_type == 'bce':
-        vae.add_loss(BCE_loss)
-        vae.compile(optimizer=opt)
+        print('Using VAE model without kl loss')
     elif loss_type == 'vae':
         print('Using VAE model')
-        vae.add_loss(BCE_loss)
-        vae.add_loss(kl_loss)
-        vae.compile(optimizer=opt)
-        vae.add_metric(IoU, name='IoU', aggregation='mean')
-        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
-        vae.add_metric(kl_loss, name='kl_loss', aggregation='mean')
+        vae.add_loss(alpha * kl_loss)
+        vae.add_metric(alpha * kl_loss, name='kl_loss', aggregation='mean')
     elif loss_type == 'bvae':
         print('Using beta-VAE model')
-        vae.add_loss(BCE_loss)
         vae.add_loss(args.beta * kl_loss)
-        vae.compile(optimizer=opt)
-        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         vae.add_metric(args.beta * kl_loss, name='beta_kl_loss', aggregation='mean')
     elif loss_type == 'btcvae':
         print('Using beta-tc-VAE model')
-        vae.add_loss(BCE_loss)
         vae.add_loss(kl_loss)
         vae.add_loss(tc_loss)
-        vae.compile(optimizer=opt)
-        vae.add_metric(IoU, name='IoU', aggregation='mean')
-        vae.add_metric(BCE_loss, name='recon_loss', aggregation='mean')
         vae.add_metric(kl_loss, name='kl_loss', aggregation='mean')
         vae.add_metric(tc_loss, name='tc_loss', aggregation='mean')
+    vae.compile(optimizer=opt)
 
     plot_model(vae, to_file=os.path.join(model_pdf_path, 'model.pdf'), show_shapes=True)
     plot_model(encoder, to_file=os.path.join(model_pdf_path, 'encoder.pdf'), show_shapes=True)
@@ -146,11 +151,7 @@ def main(args):
         tf.keras.callbacks.LearningRateScheduler(learning_rate_scheduler, verbose=0),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log'),
-        tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(train_data_path, 'weights_{epoch:03d}_{loss:.4f}.h5'),
-            save_weights_only=True,
-            period=200
-        )
+        epoch_kl_weight_callback(alpha)
     ]
 
     vae.fit_generator(

@@ -12,8 +12,8 @@ if __name__ == '__main__':
     #latent_key = ['z_cat']
     #svm_kernel = ['rbf', 'linear']
     svm_kernel = ['rbf']
-    latent_file_dirs = ['/home/zmy/Downloads/bothTrain_onChair_uniLoss1_switchImg08_epoch1000/modelnet10_image_BG255_latent_2.npz',
-                    '/home/zmy/Downloads/bothTrain_onChair_uniLoss1_switchImg08_epoch1000/modelnet40_image_BG255_latent_2.npz']
+    latent_file_dirs = ['/home/zmy/Downloads/bothTrain_onModelNet40_lr2e-5_epoch1000_annealing5cyc_lrDecayNo/modelnet10_image_BG0_latent.npz',
+                    '/home/zmy/Downloads/bothTrain_onModelNet40_lr2e-5_epoch1000_annealing5cyc_lrDecayNo/modelnet40_image_BG0_latent.npz']
 
 
     for i, latent_file in enumerate(latent_file_dirs):
@@ -40,13 +40,13 @@ if __name__ == '__main__':
                 print("Test Accuracy:", test_accuracy)
                 print('-----------------------------------')
 
-                # tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
-                # Y = tsne.fit_transform(train_latent_features)
-                # ax = plt.figure(figsize=(8, 8), facecolor='white')
-                # plt.scatter(Y[:, 0], Y[:, 1], c=train_labels[:], edgecolors='none',
-                #             cmap='terrain')
-                # plt.xticks([])
-                # plt.yticks([])
-                # plt.axis('tight')
-                # #plt.show()
-                # plt.savefig('/home/zmy/Downloads/bothTrain_lessFC_uniLoss1/255bg_image_latent_tsne'+str(i)+'_'+key+'_'+kernel+''+'.png')
+                tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
+                Y = tsne.fit_transform(train_latent_features)
+                ax = plt.figure(figsize=(8, 8), facecolor='white')
+                plt.scatter(Y[:, 0], Y[:, 1], c=train_labels[:], edgecolors='none',
+                            cmap='terrain')
+                plt.xticks([])
+                plt.yticks([])
+                plt.axis('tight')
+                #plt.show()
+                plt.savefig('/home/zmy/Downloads/bothTrain_onModelNet40_lr2e-5_epoch1000_annealing5cyc_lrDecayNo/0BG_image_latent_tsne'+str(i)+'_'+key+'_'+kernel+''+'.png')

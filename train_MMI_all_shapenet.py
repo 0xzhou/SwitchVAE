@@ -16,26 +16,22 @@ session = tf.Session(config=ConFig)
 
 def learning_rate_scheduler(epoch):
     # initial_learning_rate * decay_rate ^ (step / decay_steps)
-    if epoch < 50:
-        return 0.0002
+    init_lr = 1e-4
+    if epoch < 100:
+        return init_lr
     else:
-        return 0.0002 * (0.96 ** ((epoch - 50) / 10))
+        return init_lr * (0.96 ** ((epoch - 100) / 10))
 
 alpha = K.variable(0.0)
-
-class epoch_kl_weight_callback(Callback):
+class epoch_kl_weight_callback(Callback): # Cyclic Annealing Schedule
     def __init__(self, alpha):
         self.alpha = alpha
-
-    def on_epoch_begin(self, epoch, logs=None):
-        if epoch <= 400:
-            pass
-        elif epoch <= 800:
-            K.set_value(self.alpha, (alpha - 400.0) / 400.0)
+    def on_epoch_begin(self, epoch, logs = None):
+        cycle = 200  # Epochs per annealing cycle
+        if int(epoch) % cycle <=100:
+            K.set_value(self.alpha, epoch/100.0)
         else:
-            K.set_value(self.alpha, 1)
-
-
+            K.set_value(self.alpha, 1.0)
 def main(args):
     # Training on all categories
     category_list = ['04530566', '02933112', '03211117', '02691156', '04256520',
