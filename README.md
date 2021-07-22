@@ -18,7 +18,7 @@ We use the [ShapeNetCore](https://www.shapenet.org/download/shapenetcore) datase
 
 The complete dataset is available in website above, it requires an account to download them. Besides, Stanford university also provide the same dataset under: https://cvgl.stanford.edu/data2/, which is convenient to download. The volumetric data is under `ShapeNetVox32.tgz` and the image data is under `ShapeNetRendering.tgz`.
 
-Use our script to process the dataset, which makes the dataset compatible with training and test. We design the processed dataset, The process dataset of one category will contains voxel/image folders, each folder is divided into 3 subsets respectively: `train`, `test` and `test_sub`, we make a special design for in voxel folder, `test_sub_visualization` is added for visualize the models in `test_sub`.
+Use our script to process the dataset, which makes the dataset compatible with training and test. We design the processed dataset, the process dataset of one category will contains voxel/image folders, each folder is divided into 3 subsets respectively: `train`, `test` and `test_sub`, we make a special design for in voxel folder, `test_sub_visualization` is added for visualize the models in `test_sub`.
 
 Set the `process_dataset.sh` with your local dataset path after downloading.
 
