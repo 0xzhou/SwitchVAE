@@ -20,7 +20,7 @@ The complete dataset is available in website above, it requires an account to do
 
 Use our script to process the dataset, which makes the dataset compatible with training and test. We design the processed dataset, the process dataset of one category will contains voxel/image folders, each folder is divided into 3 subsets respectively: `train`, `test` and `test_sub`, we make a special design for in voxel folder, `test_sub_visualization` is added for visualize the models in `test_sub`.
 
-Set the `process_dataset.sh` with your local dataset path after downloading.
+Set the [process_dataset.sh](https://github.com/Mingy2018/MMI-VAE/blob/main/process_shapenet.sh) with your local dataset path after downloading.
 
 Process the dataset:
 
