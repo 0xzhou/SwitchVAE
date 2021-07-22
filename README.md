@@ -1,4 +1,4 @@
-# Keras Implementation of 3D-VAE
+# MMI-VAE: Learning better latent representation
 
 ### Packages
 
