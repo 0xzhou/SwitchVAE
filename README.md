@@ -1,4 +1,6 @@
-# MMI-VAE: Learning better latent representation
+# SwitchVAE: Learning Better Latent Representations from Objects of Different 3D Euclidean Formats
+
+of Different 3D Euclidean Formats
 
 ### Packages
 
