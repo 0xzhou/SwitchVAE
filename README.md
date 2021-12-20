@@ -1,5 +1,7 @@
 # SwitchVAE: Learning Better Latent Representations from Objects of Different 3D Euclidean Formats
 
+![](C:%5CUsers%5CDell%5CDownloads%5Csvae%20(1).png)
+
 In this project, we proposed the model called SwitchVAE to explore the latent representation from objects of different 3D euclidean formats.
 
 ### Packages
