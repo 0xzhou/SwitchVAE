@@ -1,5 +1,5 @@
 
-python test_MMI_modelnet.py  \
+python test_SwitchVAE.py  \
           --weights_file /home/zmy/TrainingData/Experiments-BCE/2021_02_28_22_26_43/end_weights.h5 \
           --weights_dir /home/zmy/Downloads/bothTrain_onModelNet10_withUniLoss1 \
           --input_form 'image' \

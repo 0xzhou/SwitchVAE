@@ -9,7 +9,7 @@ from tensorflow.keras.utils import plot_model
 
 from utils import save_volume, data_IO, arg_parser, model
 from utils import globals as g
-from MMI import *
+from SwitchVAE import *
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ConFig = tf.ConfigProto()

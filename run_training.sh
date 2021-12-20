@@ -1,5 +1,5 @@
 
-python train_MMI.py --loss vae  \
+python train_SwitchVAE.py --loss vae  \
                 --binvox_dir /home/zmy/mmi_dataset/3d-r2n2-datasat_processed/03001627/voxel/train \
                 --image_dir /home/zmy/mmi_dataset/3d-r2n2-datasat/03001627_processed/image/train \
                 --processed_dataset /home/zmy/mmi_dataset/3d-r2n2-datasat_processed \

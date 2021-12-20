@@ -4,7 +4,7 @@ from utils import data_IO, metrics
 import os
 
 
-# using in test_MMI.py
+# using in test_SwitchVAE.py
 def save_binvox_output(output_array, hash_id, output_dir, outname, save_bin=False, save_img=True):
     # save objedt as .binvox
     if save_bin:

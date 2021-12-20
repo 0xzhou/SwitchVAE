@@ -1,11 +1,10 @@
-
 from tensorflow.keras.utils import plot_model
 from tensorflow.keras.activations import sigmoid
 from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras import backend as K
 from tensorflow.keras.callbacks import Callback
 
-from MMI import *
+from SwitchVAE import *
 from utils import data_IO, arg_parser, save_train, custom_loss, metrics
 import sys, os, random
 
@@ -13,6 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 ConFig = tf.ConfigProto()
 ConFig.gpu_options.allow_growth = True
 session = tf.Session(config=ConFig)
+
 
 def learning_rate_scheduler(epoch):
     # initial_learning_rate * decay_rate ^ (step / decay_steps)
@@ -32,9 +32,17 @@ class epoch_kl_weight_callback(Callback): # Cyclic Annealing Schedule
             K.set_value(self.alpha, epoch/100.0)
         else:
             K.set_value(self.alpha, 1.0)
-
-
 def main(args):
+    # Training on all categories
+    category_list = ['04530566', '02933112', '03211117', '02691156', '04256520',
+                     '04379243', '03691459', '04401088', '02828884', '02958343',
+                     '03001627', '03636649', '04090263']
+    #chair = ['03001627']
+    processed_dataset_path = args.processed_dataset
+    voxel_files_list, image_files_list, multicat_hash_id = data_IO.multicat_path_list(processed_dataset_path,
+                                                                                      category_list,
+                                                                                      use_mode='train')
+
     # Hyperparameters
     epoch_num = args.num_epochs
     batch_size = args.batch_size
@@ -42,8 +50,6 @@ def main(args):
     learning_rate = args.initial_learning_rate
 
     # Path configuration
-    voxel_dataset_path = args.binvox_dir
-    image_dataset_path = args.image_dir
     save_path = args.save_dir
     train_data_path = save_train.create_log_dir(save_path)
     model_pdf_path = os.path.join(train_data_path, 'model_pdf_train')
@@ -60,7 +66,6 @@ def main(args):
     z_mean = model['z_mean']
     z_logvar = model['z_logvar']
     z = model['z']
-
 
     encoder = model['MMI_encoder']
     image_encoder = model['image_encoder']
@@ -87,9 +92,8 @@ def main(args):
     tc_loss = (args.beta - 1.) * custom_loss.total_correlation(z, z_mean, z_logvar)
 
     # Add metrics
-    #precision = metrics.get_precision(vol_inputs, outputs)
+    # precision = metrics.get_precision(vol_inputs, outputs)
     IoU = metrics.get_IoU(vol_inputs, outputs)
-    accuracy = metrics.get_accuracy(vol_inputs, outputs)
 
     # opt = Adam(lr=learning_rate)
     opt = SGD(lr=learning_rate, momentum=0.9, nesterov=True)
@@ -119,7 +123,6 @@ def main(args):
         MMI.add_metric(tc_loss, name='tc_loss', aggregation='mean')
     MMI.compile(optimizer= opt)
 
-
     plot_model(MMI, to_file=os.path.join(model_pdf_path, 'MMI.pdf'), show_shapes=True)
     plot_model(encoder, to_file=os.path.join(model_pdf_path, 'MMI-encoder.pdf'), show_shapes=True)
     plot_model(decoder, to_file=os.path.join(model_pdf_path, 'MMI-decoder.pdf'), show_shapes=True)
@@ -131,14 +134,20 @@ def main(args):
     plot_model(voxel_encoder, to_file=os.path.join(model_pdf_path, 'voxel-encoder.pdf'), show_shapes=True)
     save_train.save_config_pro(save_path=train_data_path)
 
-    def generate_MMI_batch_data(voxel_path, image_path, batch_size):
+    def generate_MMI_batch_data(voxel_path_list,multicat_hash, batch_size):
 
-        number_of_elements = len(os.listdir(voxel_path))
-        hash_id = os.listdir(voxel_path)
-        random.shuffle(hash_id)
+        number_of_elements = len(voxel_path_list)
+        random.shuffle(multicat_hash)
 
-        voxel_file_path = [os.path.join(voxel_path, id) for id in hash_id]
-        image_file_path = [os.path.join(image_path, id) for id in hash_id]
+        voxel_file_path = []
+        image_file_path = []
+
+        for cat_hash in multicat_hash:
+            category, hash = cat_hash.split('_')[0], cat_hash.split('_')[1]
+            voxel_file = os.path.join(processed_dataset_path, category, 'voxel', 'train', hash)
+            image_file = os.path.join(processed_dataset_path, category, 'image', 'train', hash)
+            voxel_file_path.append(voxel_file)
+            image_file_path.append(image_file)
 
         while 1:
             for start_idx in range(number_of_elements // batch_size):
@@ -153,7 +162,7 @@ def main(args):
                 yield ([image_one_batch, voxel_one_batch],)
 
     train_callbacks = [
-        #tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2, patience=5, min_lr=1e-7, cooldown=1),
+        # tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.2, patience=5, min_lr=1e-7, cooldown=1),
         tf.keras.callbacks.LearningRateScheduler(learning_rate_scheduler, verbose=0),
         tf.keras.callbacks.TensorBoard(log_dir=train_data_path),
         tf.keras.callbacks.CSVLogger(filename=train_data_path + '/training_log'),
@@ -161,9 +170,9 @@ def main(args):
     ]
 
     MMI.fit_generator(
-        generate_MMI_batch_data(voxel_dataset_path, image_dataset_path, batch_size),
-        #steps_per_epoch=len(os.listdir(voxel_dataset_path)) // batch_size,
-        steps_per_epoch=5,
+        generate_MMI_batch_data(voxel_files_list,multicat_hash_id, batch_size),
+        steps_per_epoch=len(voxel_files_list) // batch_size,
+        # steps_per_epoch=5,
         epochs=epoch_num,
         callbacks=train_callbacks
     )
@@ -174,6 +183,7 @@ def main(args):
     voxel_encoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxEncoder.h5'))
     decoder.save_weights(os.path.join(train_data_path, 'weightsEnd_voxDecoder.h5'))
     MMI.save_weights(os.path.join(train_data_path, 'weightsEnd_all.h5'))
+
 
 if __name__ == '__main__':
     main(arg_parser.parse_train_arguments(sys.argv[1:]))

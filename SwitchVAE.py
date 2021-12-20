@@ -14,7 +14,7 @@ def switch(args):
     return output[0], output[1], output[2]
 
 
-def get_MMI(z_dim=200, view_image_shape=None, train_mode='switch', use_pretrain=True):
+def get_SwitchVAE(z_dim=200, view_image_shape=None, train_mode='switch', use_pretrain=True):
 
     img_input = Input(shape=view_image_shape, name='Image_Input')
     vol_input = Input(shape=g.VOXEL_INPUT_SHAPE, name='Voxel_Input')

@@ -2,7 +2,7 @@ import numpy as np
 import shutil, sys, os, pickle
 sys.path.append("..")
 
-from MMI import *
+from SwitchVAE import *
 from VAE import *
 from utils import save_volume, data_IO, arg_parser, model
 
